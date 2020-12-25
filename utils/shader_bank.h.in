@@ -1,0 +1,39 @@
+#include <string>
+#include <map>
+#include <vector>
+#include <set>
+#include <iostream>
+namespace shader_bank
+{
+
+const std::map<std::string, std::string>& nameCodeMap_()
+{
+    static const std::map<std::string, std::string> name_code_map{
+        {"empty_string", ""},
+        @SHADER_SRC_MAP_STRING@
+    };
+    return name_code_map;
+}
+
+std::string availableShaderNames()
+{
+    std::string name_list;
+    name_list += "Available shaders are: \n";
+    for(auto & name_code : nameCodeMap_())
+    {
+        name_list += "\t";
+        name_list += (name_code.first + "\n");
+    }
+    return name_list;
+}
+
+const std::string& read(const std::string& filename)
+{
+    if(nameCodeMap_().count(filename) == 0)
+    {
+        return nameCodeMap_().at("empty_string");
+    }
+    return nameCodeMap_().at(filename);
+}
+
+} // namespace shader_bank

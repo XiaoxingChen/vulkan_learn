@@ -37,7 +37,7 @@ class BuildTarget():
         elif platform_exe:
             self.host_exec_relative = platform_exe[0]
             self.exec_args = ' '.join(platform_exe[1:])
-        elif self.platform == 'native':
+        elif args.__getattribute__(self.platform.replace('-', '_')):
             pass
         else:
             self.require_build = False
@@ -54,6 +54,8 @@ class BuildTarget():
         return CMAKE_OPTION_STR
 
     def updateArgParser(self, parser):
+        self.parser_build_cmd = ('--' + self.platform)
+
         self.parser_run_cmd = '--run' + ('' if self.platform == 'native' else ('-' + self.platform))
         self.parser_run_var = (self.platform) + '_exe'
         # self.parser_run_var.replace('-','_')
@@ -61,10 +63,13 @@ class BuildTarget():
         self.parser_test_cmd = '--test' + ('' if self.platform == 'native' else ('-' + self.platform))
         self.parser_test_var = self.parser_test_cmd[2:].replace('-','_')
 
+        parser.add_argument(self.parser_build_cmd, action='store_true', \
+            help='Build ' + self.platform + ' platform')
         parser.add_argument(self.parser_run_cmd, dest=self.parser_run_var, \
             nargs='+', help='run ' + self.platform + ' executable')
         parser.add_argument(self.parser_test_cmd, action='store_true', \
             help='Run test on ' + self.platform + ' platform')
+
 
     def checkExecutableValid(self):
         if self.host_exec is None:
@@ -87,7 +92,7 @@ class LinuxNativeTarget(BuildTarget):
         cmake_generate_cmd += self.cmakeBaseOptions()
 
         os.system(cmake_generate_cmd)
-        exit_code = os.system('cmake --build {} -- -j8'.format(self.build_dir))
+        exit_code = os.system('cmake --build {} -- -j16'.format(self.build_dir))
         if exit_code != 0:
             exit(1)
 
@@ -175,9 +180,15 @@ def run(build_script_folder=os.path.abspath(os.path.dirname(__file__))):
         shutil.rmtree(Dir.build_root, ignore_errors=True)
         quit()
 
+    build_target_cnt = 0
     for target in targets:
         target.updateFromArgs(args)
         target.runBuild()
+        build_target_cnt += int(target.require_build)
+
+    if 0 == build_target_cnt:
+        targets[0].require_build = True
+        targets[0].runBuild()
 
     for target in targets:
         target.runExecutable()

@@ -414,6 +414,7 @@ namespace vk
                                    VkDebugUtilsMessengerCallbackDataEXT const * pCallbackData,
                                    void * /*pUserData*/ )
     {
+      #if 0
       std::cerr << vk::to_string( static_cast<vk::DebugUtilsMessageSeverityFlagBitsEXT>( messageSeverity ) ) << ": "
                 << vk::to_string( static_cast<vk::DebugUtilsMessageTypeFlagsEXT>( messageTypes ) ) << ":\n";
       std::cerr << "\t"
@@ -462,6 +463,7 @@ namespace vk
           }
         }
       }
+      #endif
       return VK_TRUE;
     }
 #if 0
