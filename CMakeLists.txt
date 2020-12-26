@@ -5,7 +5,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(WriteShaderBank)
 
 add_subdirectory(third_party)
-add_subdirectory(src)
+add_subdirectory(create_device)
 add_subdirectory(utils)
 if(BUILD_TEST)
     add_subdirectory(tests)

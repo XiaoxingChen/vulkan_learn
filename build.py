@@ -166,6 +166,13 @@ def handleAutoComplete():
     else:
         pass
 
+def ring():
+    if sys.platform == 'linux':
+        sound_file = '/usr/share/sounds/gnome/default/alerts/glass.ogg'
+        os.system('paplay ' + sound_file)
+    else:
+        pass
+
 def run(build_script_folder=os.path.abspath(os.path.dirname(__file__))):
     parser = createParser()
     handleAutoComplete()
@@ -192,6 +199,8 @@ def run(build_script_folder=os.path.abspath(os.path.dirname(__file__))):
 
     for target in targets:
         target.runExecutable()
+
+    ring()
 
 if __name__ == "__main__":
     run()
