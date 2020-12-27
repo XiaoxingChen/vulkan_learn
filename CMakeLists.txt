@@ -16,3 +16,4 @@ endif()
 
 add_subdirectory(create_device)
 add_subdirectory(simple_compute)
+add_subdirectory(vector_crash_android)

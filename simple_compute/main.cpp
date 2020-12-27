@@ -27,11 +27,10 @@ int main(int argc, char const *argv[])
     /* VULKAN_HPP_KEY_START */
     LOGD("{}:{}", __FILE__, __LINE__);
     std::vector<double> testData{1., 2., 3., 4.};
-    // LOGI("testData.size: {}, data: {}", testData.size(), (void*) testData.data());
     LOGI("testData.size: {}, addr: {}", testData.size(), ((void**)&testData)[0]);
 
     vk::su::BufferData storageBufferData(
-      physicalDevice, device, 8 * 4 , vk::BufferUsageFlagBits::eStorageBuffer );
+      physicalDevice, device, sizeof(testData[0]) * testData.size() , vk::BufferUsageFlagBits::eStorageBuffer );
     LOGD("{}:{}", __FILE__, __LINE__);
     LOGI("testData.size: {}, data: {}, addr: {}", testData.size(), (void*) testData.data(), ((void**)&testData)[0]);
     vk::su::copyToDevice(
