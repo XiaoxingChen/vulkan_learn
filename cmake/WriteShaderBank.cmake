@@ -1,5 +1,4 @@
 function(WriteShaderBank SHADER_FOLDER SHADER_LIST INPUT_TEMPLATE OUTPUT_FILENAME)
-    message("SHADER_LIST: " ${SHADER_LIST})
     set(STRENG_BYTES_LIMIT 5000)
     foreach(shader_filename ${SHADER_LIST})
         set(SHADER_CODE "")

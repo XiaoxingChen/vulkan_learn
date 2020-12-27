@@ -38,7 +38,7 @@ namespace vk
 {
   namespace su
   {
-#if 0
+
     vk::UniqueDeviceMemory allocateMemory( vk::UniqueDevice const &                   device,
                                            vk::PhysicalDeviceMemoryProperties const & memoryProperties,
                                            vk::MemoryRequirements const &             memoryRequirements,
@@ -49,7 +49,7 @@ namespace vk
 
       return device->allocateMemoryUnique( vk::MemoryAllocateInfo( memoryRequirements.size, memoryTypeIndex ) );
     }
-
+#if 0
     bool contains( std::vector<vk::ExtensionProperties> const & extensionProperties, std::string const & extensionName )
     {
       return std::find_if( extensionProperties.begin(),
@@ -76,7 +76,7 @@ namespace vk
       return instance->createDebugUtilsMessengerEXTUnique( vk::DebugUtilsMessengerCreateInfoEXT(
         {}, severityFlags, messageTypeFlags, &vk::su::debugUtilsMessengerCallback ) );
     }
-#if 0
+
     vk::UniqueDescriptorPool createDescriptorPool( vk::UniqueDevice &                          device,
                                                    std::vector<vk::DescriptorPoolSize> const & poolSizes )
     {
@@ -130,7 +130,7 @@ namespace vk
       deviceCreateInfo.pNext = pNext;
       return physicalDevice.createDeviceUnique( deviceCreateInfo );
     }
-
+#if 0
     std::vector<vk::UniqueFramebuffer> createFramebuffers( vk::UniqueDevice &                       device,
                                                            vk::UniqueRenderPass &                   renderPass,
                                                            std::vector<vk::UniqueImageView> const & imageViews,
@@ -466,7 +466,7 @@ namespace vk
       #endif
       return VK_TRUE;
     }
-#if 0
+
     uint32_t findGraphicsQueueFamilyIndex( std::vector<vk::QueueFamilyProperties> const & queueFamilyProperties )
     {
       // get the first index into queueFamiliyProperties which supports graphics
@@ -481,6 +481,7 @@ namespace vk
       return checked_cast<uint32_t>( graphicsQueueFamilyIndex );
     }
 
+#if 0
     std::pair<uint32_t, uint32_t> findGraphicsAndPresentQueueFamilyIndex( vk::PhysicalDevice     physicalDevice,
                                                                           vk::SurfaceKHR const & surface )
     {
@@ -518,7 +519,7 @@ namespace vk
 
       throw std::runtime_error( "Could not find queues for both graphics or present -> terminating" );
     }
-
+#endif
     uint32_t findMemoryType( vk::PhysicalDeviceMemoryProperties const & memoryProperties,
                              uint32_t                                   typeBits,
                              vk::MemoryPropertyFlags                    requirementsMask )
@@ -537,7 +538,7 @@ namespace vk
       assert( typeIndex != uint32_t(~0) );
       return typeIndex;
     }
-
+#if 0
     std::vector<std::string> getDeviceExtensions()
     {
       return { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
@@ -824,7 +825,7 @@ namespace vk
 
       device->updateDescriptorSets( writeDescriptorSets, nullptr );
     }
-
+#endif
     BufferData::BufferData( vk::PhysicalDevice const & physicalDevice,
                             vk::UniqueDevice const &   device,
                             vk::DeviceSize             size,
@@ -841,7 +842,7 @@ namespace vk
                                              propertyFlags );
       device->bindBufferMemory( buffer.get(), deviceMemory.get(), 0 );
     }
-
+#if 0
     DepthBufferData::DepthBufferData( vk::PhysicalDevice & physicalDevice,
                                       vk::UniqueDevice &   device,
                                       vk::Format           format,

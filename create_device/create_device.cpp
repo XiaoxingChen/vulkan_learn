@@ -19,27 +19,9 @@ int main( int /*argc*/, char ** /*argv*/ )
 
     /* VULKAN_HPP_KEY_START */
 
-    // get the QueueFamilyProperties of the first PhysicalDevice
-    std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
-
-    // get the first index into queueFamiliyProperties which supports graphics
-    size_t graphicsQueueFamilyIndex = std::distance(
-      queueFamilyProperties.begin(),
-      std::find_if(
-        queueFamilyProperties.begin(), queueFamilyProperties.end(), []( vk::QueueFamilyProperties const & qfp ) {
-          return qfp.queueFlags & vk::QueueFlagBits::eGraphics;
-        } ) );
-    assert( graphicsQueueFamilyIndex < queueFamilyProperties.size() );
-
-    // create a UniqueDevice
-    float                     queuePriority = 0.0f;
-    vk::DeviceQueueCreateInfo deviceQueueCreateInfo(
-      vk::DeviceQueueCreateFlags(), static_cast<uint32_t>( graphicsQueueFamilyIndex ), 1, &queuePriority );
-    vk::UniqueDevice device =
-      physicalDevice.createDeviceUnique( vk::DeviceCreateInfo( vk::DeviceCreateFlags(), deviceQueueCreateInfo ) );
-
-    // Note: No need to explicitly destroy the device, as the corresponding destroy function is
-    // called by the destructor of the UniqueDevice on leaving this scope.
+    uint32_t graphicsQueueFamilyIndex =
+      vk::su::findGraphicsQueueFamilyIndex( physicalDevice.getQueueFamilyProperties() );
+    vk::UniqueDevice device = vk::su::createDevice( physicalDevice, graphicsQueueFamilyIndex );
 
     /* VULKAN_HPP_KEY_END */
   }

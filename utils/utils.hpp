@@ -27,7 +27,7 @@ namespace vk
   namespace su
   {
     const uint64_t FenceTimeout = 100000000;
-#if 0
+
     template <typename Func>
     void oneTimeSubmit( vk::UniqueCommandBuffer const & commandBuffer, vk::Queue const & queue, Func const & func )
     {
@@ -81,7 +81,7 @@ namespace vk
     {
       copyToDevice<T>( device, memory, &data, 1 );
     }
-
+#if 0
     template <class T>
     VULKAN_HPP_INLINE constexpr const T & clamp( const T & v, const T & lo, const T & hi )
     {
@@ -107,7 +107,7 @@ namespace vk
     };
 
     WindowData createWindow( std::string const & windowName, vk::Extent2D const & extent );
-
+#endif
     struct BufferData
     {
       BufferData( vk::PhysicalDevice const & physicalDevice,
@@ -174,7 +174,7 @@ namespace vk
       vk::MemoryPropertyFlags m_propertyFlags;
 #endif
     };
-
+#if 0
     struct ImageData
     {
       ImageData( vk::PhysicalDevice const & physicalDevice,
@@ -338,7 +338,7 @@ namespace vk
 
       uint8_t m_data[VK_UUID_SIZE];
     };
-
+#endif
     template <typename TargetType, typename SourceType>
     VULKAN_HPP_INLINE TargetType checked_cast( SourceType value )
     {
@@ -355,23 +355,26 @@ namespace vk
                                                      vk::PhysicalDeviceMemoryProperties const & memoryProperties,
                                                      vk::MemoryRequirements const &             memoryRequirements,
                                                      vk::MemoryPropertyFlags                    memoryPropertyFlags );
+#if 0
     bool                             contains( std::vector<vk::ExtensionProperties> const & extensionProperties,
                                                std::string const &                          extensionName );
     vk::UniqueCommandPool            createCommandPool( vk::UniqueDevice & device, uint32_t queueFamilyIndex );
 #endif
     vk::UniqueDebugUtilsMessengerEXT createDebugUtilsMessenger( vk::UniqueInstance & instance );
-#if 0
+
     vk::UniqueDescriptorPool         createDescriptorPool( vk::UniqueDevice &                          device,
                                                            std::vector<vk::DescriptorPoolSize> const & poolSizes );
     vk::UniqueDescriptorSetLayout    createDescriptorSetLayout(
          vk::UniqueDevice const &                                                            device,
          std::vector<std::tuple<vk::DescriptorType, uint32_t, vk::ShaderStageFlags>> const & bindingData,
          vk::DescriptorSetLayoutCreateFlags                                                  flags = {} );
+
     vk::UniqueDevice                   createDevice( vk::PhysicalDevice                 physicalDevice,
                                                      uint32_t                           queueFamilyIndex,
                                                      std::vector<std::string> const &   extensions             = {},
                                                      vk::PhysicalDeviceFeatures const * physicalDeviceFeatures = nullptr,
                                                      void const *                       pNext = nullptr );
+#if 0
     std::vector<vk::UniqueFramebuffer> createFramebuffers( vk::UniqueDevice &                       device,
                                                            vk::UniqueRenderPass &                   renderPass,
                                                            std::vector<vk::UniqueImageView> const & imageViews,
@@ -406,13 +409,30 @@ namespace vk
                                           VkDebugUtilsMessageTypeFlagsEXT              messageTypes,
                                           VkDebugUtilsMessengerCallbackDataEXT const * pCallbackData,
                                           void * /*pUserData*/ );
-#if 0
+
     uint32_t findGraphicsQueueFamilyIndex( std::vector<vk::QueueFamilyProperties> const & queueFamilyProperties );
+    template<vk::QueueFlagBits EBits=vk::QueueFlagBits::eGraphics>
+    uint32_t findQueueFamilyIndex( std::vector<vk::QueueFamilyProperties> const & queueFamilyProperties )
+    {
+      // get the first index into queueFamiliyProperties which supports graphics/compute
+      size_t queueFamilyIndex = std::distance(
+        queueFamilyProperties.begin(),
+        std::find_if(
+          queueFamilyProperties.begin(), queueFamilyProperties.end(), []( vk::QueueFamilyProperties const & qfp ) {
+            return qfp.queueFlags & EBits;
+          } ) );
+      assert( queueFamilyIndex < queueFamilyProperties.size() );
+
+      return checked_cast<uint32_t>( queueFamilyIndex );
+    }
+#if 0
     std::pair<uint32_t, uint32_t> findGraphicsAndPresentQueueFamilyIndex( vk::PhysicalDevice     physicalDevice,
                                                                           vk::SurfaceKHR const & surface );
+#endif
     uint32_t                      findMemoryType( vk::PhysicalDeviceMemoryProperties const & memoryProperties,
                                                   uint32_t                                   typeBits,
                                                   vk::MemoryPropertyFlags                    requirementsMask );
+#if 0
     std::vector<std::string>      getDeviceExtensions();
     std::vector<std::string>      getInstanceExtensions();
     vk::Format                    pickDepthFormat( vk::PhysicalDevice const & physicalDevice );

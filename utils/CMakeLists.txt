@@ -18,13 +18,13 @@ project(utils)
 
 set(HEADERS
   # math.hpp
-  # shaders.hpp
+  shaders.hpp
   utils.hpp
 )
 
 set(SOURCES
   # math.cpp
-  # shaders.cpp
+  shaders.cpp
   utils.cpp
 )
 
@@ -44,9 +44,9 @@ if(ANDROID)
 endif()
 # target_link_libraries(utils PUBLIC glm)
 # target_link_libraries(utils PUBLIC glfw)
-# target_link_libraries(utils PUBLIC glslang)
-# target_link_libraries(utils PUBLIC glslang-default-resource-limits)
-# target_link_libraries(utils PUBLIC SPIRV)
+target_link_libraries(utils PUBLIC glslang)
+target_link_libraries(utils PUBLIC glslang-default-resource-limits)
+target_link_libraries(utils PUBLIC SPIRV)
 target_compile_definitions(utils PUBLIC VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 target_include_directories(utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 

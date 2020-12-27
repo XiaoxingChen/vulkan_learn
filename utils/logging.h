@@ -24,7 +24,7 @@ inline void initLogger()
 	sinks.push_back(std::make_shared<spdlog::sinks::android_sink_mt>("vk_learn"));
 #endif
     auto logger = std::make_shared<spdlog::logger>("vk_learn", sinks.begin(), sinks.end());
-    logger->set_level(spdlog::level::debug);
+    logger->set_level(spdlog::level::info);
     spdlog::set_default_logger(logger);
     LOGI("Logger initialized");
 }
