@@ -6,3 +6,4 @@ target_include_directories(vulkan INTERFACE ${VULKAN_INCLUDE_DIR})
 
 add_subdirectory(glslang)
 add_subdirectory(spdlog)
+add_subdirectory(glfw)

@@ -10,18 +10,18 @@ int main( int /*argc*/, char ** /*argv*/ )
 {
   try
   {
-    vk::UniqueInstance instance = vk::su::createInstance( AppName, EngineName );
+    vk::Instance instance = vk::su::createInstance( AppName, EngineName );
 #if !defined( NDEBUG )
     vk::UniqueDebugUtilsMessengerEXT debugUtilsMessenger = vk::su::createDebugUtilsMessenger( instance );
 #endif
 
-    vk::PhysicalDevice physicalDevice = instance->enumeratePhysicalDevices().front();
+    vk::PhysicalDevice physicalDevice = instance.enumeratePhysicalDevices().front();
 
     /* VULKAN_HPP_KEY_START */
 
     uint32_t graphicsQueueFamilyIndex =
       vk::su::findGraphicsQueueFamilyIndex( physicalDevice.getQueueFamilyProperties() );
-    vk::UniqueDevice device = vk::su::createDevice( physicalDevice, graphicsQueueFamilyIndex );
+    vk::Device device = vk::su::createDevice( physicalDevice, graphicsQueueFamilyIndex );
 
     /* VULKAN_HPP_KEY_END */
   }

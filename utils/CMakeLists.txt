@@ -17,13 +17,14 @@ cmake_minimum_required(VERSION 3.2)
 project(utils)
 
 set(HEADERS
-  # math.hpp
+  geometries.hpp
+  math.hpp
   shaders.hpp
   utils.hpp
 )
 
 set(SOURCES
-  # math.cpp
+  math.cpp
   shaders.cpp
   utils.cpp
 )
@@ -42,8 +43,8 @@ target_link_libraries(utils PUBLIC spdlog)
 if(ANDROID)
   target_link_libraries(utils PUBLIC android log)
 endif()
-# target_link_libraries(utils PUBLIC glm)
-# target_link_libraries(utils PUBLIC glfw)
+# target_link_libraries(utils PUBLIC glm::glm)
+target_link_libraries(utils PUBLIC glfw)
 target_link_libraries(utils PUBLIC glslang)
 target_link_libraries(utils PUBLIC glslang-default-resource-limits)
 target_link_libraries(utils PUBLIC SPIRV)
