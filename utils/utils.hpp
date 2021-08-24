@@ -126,9 +126,9 @@ namespace vk
       template <typename DataType>
       void upload( vk::Device const & device, DataType const & data ) const
       {
-        assert( ( m_propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent ) &&
-                ( m_propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible ) );
-        assert( sizeof( DataType ) <= m_size );
+        // assert( ( m_propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent ) &&
+        //         ( m_propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible ) );
+        // assert( sizeof( DataType ) <= m_size );
 
         void * dataPtr = device.mapMemory( deviceMemory, 0, sizeof( DataType ) );
         memcpy( dataPtr, &data, sizeof( DataType ) );
@@ -138,7 +138,7 @@ namespace vk
       template <typename DataType>
       void upload( vk::Device const & device, std::vector<DataType> const & data, size_t stride = 0 ) const
       {
-        assert( m_propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible );
+        // assert( m_propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible );
 
         size_t elementSize = stride ? stride : sizeof( DataType );
         assert( sizeof( DataType ) <= elementSize );
@@ -154,14 +154,14 @@ namespace vk
                    std::vector<DataType> const & data,
                    size_t                        stride ) const
       {
-        assert( m_usage & vk::BufferUsageFlagBits::eTransferDst );
-        assert( m_propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal );
+        // assert( m_usage & vk::BufferUsageFlagBits::eTransferDst );
+        // assert( m_propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal );
 
         size_t elementSize = stride ? stride : sizeof( DataType );
         assert( sizeof( DataType ) <= elementSize );
 
         size_t dataSize = data.size() * elementSize;
-        assert( dataSize <= m_size );
+        // assert( dataSize <= m_size );
 
         vk::su::BufferData stagingBuffer( physicalDevice, device, dataSize, vk::BufferUsageFlagBits::eTransferSrc );
         copyToDevice( device, stagingBuffer.deviceMemory, data.data(), data.size(), elementSize );
@@ -175,7 +175,7 @@ namespace vk
 
       vk::Buffer       buffer;
       vk::DeviceMemory deviceMemory;
-#if !defined( NDEBUG )
+#if !defined( NDEBUG ) && 0
     private:
       vk::DeviceSize          m_size;
       vk::BufferUsageFlags    m_usage;

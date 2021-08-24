@@ -839,7 +839,7 @@ namespace vk
                             vk::DeviceSize             size,
                             vk::BufferUsageFlags       usage,
                             vk::MemoryPropertyFlags    propertyFlags )
-#if !defined( NDEBUG )
+#if !defined( NDEBUG ) && 0
       : m_size( size ), m_usage( usage ), m_propertyFlags( propertyFlags )
 #endif
     {

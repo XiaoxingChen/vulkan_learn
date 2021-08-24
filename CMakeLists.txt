@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.1)
 project(vulkan_learn)
 
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(MACOSX TRUE)
+endif()
+
+find_package(glm REQUIRED)
+
 if (NOT DEFINED CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 11)
 endif()

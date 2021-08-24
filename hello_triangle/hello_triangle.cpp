@@ -109,6 +109,7 @@ int main( int /*argc*/, char ** /*argv*/ )
       vk::su::createShaderModule( device, vk::ShaderStageFlagBits::eFragment, fragmentShaderText_C_C );
     glslang::FinalizeProcess();
 #if !DEPTH_BUFFER_DATA
+    device.destroyImageView(depthBufferData.imageView);
     depthBufferData.imageView = nullptr;
 #endif
     std::vector<vk::Framebuffer> framebuffers = vk::su::createFramebuffers(
@@ -200,7 +201,10 @@ int main( int /*argc*/, char ** /*argv*/ )
         break;
       default: assert( false );  // an unexpected result is returned !
     }
-    std::this_thread::sleep_for( std::chrono::milliseconds( 2000 ) );
+    // std::this_thread::sleep_for( std::chrono::milliseconds( 2000 ) );
+    while (!glfwWindowShouldClose(surfaceData.window.handle)) {
+            glfwPollEvents();
+        }
 
     device.waitIdle();
 
