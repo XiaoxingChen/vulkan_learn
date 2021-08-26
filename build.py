@@ -4,6 +4,10 @@ import sys
 import os
 import shutil
 import argparse
+import yaml
+
+sys.path.append( os.path.join(os.path.abspath(os.path.dirname(__file__)), 'scripts'))
+from build_lib import *
 
 UNIX_CMAKE_STR = 'cmake {} -B{} -G "Unix Makefiles"'
 TEST_EXCUTABLE_NAME = 'test_main'
@@ -12,6 +16,8 @@ class Dir():
     script_folder = os.path.abspath(os.path.dirname(__file__))
     build_root = os.path.join(script_folder, 'build')
     cmake_project = script_folder
+    lfs_yaml = os.path.join(script_folder, 'lfs.yaml')
+    lfs_asset = os.path.join(build_root, 'assets')
 
 class BuildTarget():
     def __init__(self):
@@ -153,18 +159,19 @@ def createParser():
     parser.add_argument('--all', action='store_true', help='Compile for all platforms')
     parser.add_argument('--test-all', action='store_true', help='Run test on all platforms')
     parser.add_argument('--cmake-options', dest='cmake_options', help='additional cmake options. Put in quote, start with space: " -DCMAKE_BUILD_TYPE=Debug"')
+    parser.add_argument('--sync-lfs', action='store_true', help='Synchronize large file storage')
 
     return parser
 
-def handleAutoComplete():
-    if sys.platform == 'linux':
-        complete_cmd = 'complete -F _longopt {}'.format(os.path.basename(__file__))
-        bashrc_path = os.path.expanduser('~/.bashrc')
-        with open(bashrc_path) as f:
-            if not complete_cmd in f.read():
-                os.system('echo "{}" >> {}'.format(complete_cmd, bashrc_path))
-    else:
-        pass
+# def handleAutoComplete():
+#     if sys.platform == 'linux':
+#         complete_cmd = 'complete -F _longopt {}'.format(os.path.basename(__file__))
+#         bashrc_path = os.path.expanduser('~/.bashrc')
+#         with open(bashrc_path) as f:
+#             if not complete_cmd in f.read():
+#                 os.system('echo "{}" >> {}'.format(complete_cmd, bashrc_path))
+#     else:
+#         pass
 
 def ring():
     if sys.platform == 'linux':
@@ -186,6 +193,9 @@ def run(build_script_folder=os.path.abspath(os.path.dirname(__file__))):
     if args.clean:
         shutil.rmtree(Dir.build_root, ignore_errors=True)
         quit()
+
+    if args.sync_lfs:
+        WebDrive.sync(Dir.lfs_yaml, Dir.lfs_asset)
 
     build_target_cnt = 0
     for target in targets:

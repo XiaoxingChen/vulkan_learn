@@ -270,6 +270,13 @@ namespace vk
 #endif
     )
     {
+#if 0
+      std::cout << "support\n";
+      for(const auto & ep: extensionProperties)
+      {
+        std::cout << ep.extensionName << "\n";
+      }
+#endif
       std::vector<char const *> enabledExtensions;
       enabledExtensions.reserve( extensions.size() );
       for ( auto const & ext : extensions )
@@ -291,6 +298,12 @@ namespace vk
         enabledExtensions.push_back( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
       }
 #endif
+      std::cout << "enabled extensions: " << std::endl;
+      for(auto & ext : enabledExtensions)
+      {
+        std::cout << ext << "\n";
+      }
+      std::cout << std::endl;
       return enabledExtensions;
     }
 
@@ -547,7 +560,9 @@ namespace vk
 
     std::vector<std::string> getDeviceExtensions()
     {
-      return { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+      return { VK_KHR_SWAPCHAIN_EXTENSION_NAME
+      // , "VK_KHR_portability_subset"
+      };
     }
 
     std::vector<std::string> getInstanceExtensions()
@@ -575,19 +590,15 @@ namespace vk
 #elif defined( VK_USE_PLATFORM_XLIB_XRANDR_EXT )
       extensions.push_back( VK_EXT_ACQUIRE_XLIB_DISPLAY_EXTENSION_NAME );
 #endif
+      extensions.push_back("VK_KHR_get_physical_device_properties2");
 #if 1
       glfwInit();
       uint32_t     glfwExtensionCount = 0;
       const char** glfwExtensions;
       glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-      std::cout << "glfwExtensionCount: " << glfwExtensionCount << std::endl;
       for(size_t i = 1; i < glfwExtensionCount; i++)
       {
         extensions.push_back(std::string(glfwExtensions[i]));
-      }
-      for(const auto & name : extensions)
-      {
-        std::cout << name << "," << std::endl;
       }
 #endif
       return extensions;
@@ -984,8 +995,10 @@ namespace vk
       images = device.getSwapchainImagesKHR( swapChain );
 
       imageViews.reserve( images.size() );
+      // vk::ComponentMapping componentMapping(
+      //   vk::ComponentSwizzle::eR, vk::ComponentSwizzle::eG, vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA );
       vk::ComponentMapping componentMapping(
-        vk::ComponentSwizzle::eR, vk::ComponentSwizzle::eG, vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA );
+        vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity, vk::ComponentSwizzle::eIdentity );
       vk::ImageSubresourceRange subResourceRange( vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 );
       for ( auto image : images )
       {

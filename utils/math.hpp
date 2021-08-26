@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-
+#  pragma once
 #if defined( _MSC_VER )
 #  pragma warning( disable : 4201 )  // disable warning C4201: nonstandard extension used: nameless struct/union; needed
                                      // to get glm/detail/type_vec?.hpp without warnings
