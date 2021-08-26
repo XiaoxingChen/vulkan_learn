@@ -32,6 +32,7 @@
 #endif
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #if defined( _MSC_VER )
 #  pragma warning( pop )
@@ -41,6 +42,6 @@ namespace vk
 {
   namespace su
   {
-    glm::mat4x4 createModelViewProjectionClipMatrix( vk::Extent2D const & extent );
+    glm::mat4x4 createModelViewProjectionClipMatrix( vk::Extent2D const & extent , float angle=0.f);
   }
 }  // namespace vk

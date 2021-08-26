@@ -235,6 +235,7 @@ namespace vk
                      vk::SwapchainKHR const &   oldSwapChain,
                      uint32_t                   graphicsFamilyIndex,
                      uint32_t                   presentFamilyIndex );
+      SwapChainData(){}
 
       void clear( vk::Device const & device )
       {
