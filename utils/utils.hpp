@@ -20,6 +20,7 @@
 // #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <iomanip>
 #include <map>
 #include <limits>
 
@@ -485,6 +486,34 @@ namespace vk
       std::vector<vk::su::TextureData> const &                                                        textureData,
       uint32_t bindingOffset = 0 );
 
+
+template<typename DType>
+inline typename std::enable_if<std::is_integral<DType>::value , std::string>::type
+to_string(const DType& v, size_t prec)
+{
+    return std::to_string(v);
+}
+
+template<typename DType>
+inline typename std::enable_if<std::is_floating_point<DType>::value , std::string>::type
+to_string(const DType& v, size_t prec)
+{
+    std::stringstream stream;
+    stream << std::fixed << std::setprecision(prec) << v;
+    return stream.str();
+}
+
+template<template <class, class> class Container, class T, class Alloc>
+std::string to_string(const Container<T, Alloc>& container, size_t prec=6)
+{
+    std::string ret;
+    for(size_t i = 0; i < container.size(); i++)
+    {
+        ret += to_string(container.at(i), prec);
+        ret += (i == container.size() - 1 ? "" : ret.back() == '\n' ? "\n" : " ");
+    }
+    return ret;
+}
   }  // namespace su
 }  // namespace vk
 

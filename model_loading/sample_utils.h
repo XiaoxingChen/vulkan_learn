@@ -47,6 +47,7 @@ struct ModelResource
   std::shared_ptr<vk::su::BufferData> pIndexBuffer = nullptr;
   std::shared_ptr<vk::su::TextureData> pTextureData = nullptr;
   std::shared_ptr<vk::su::PixelsImageGenerator> pTextureGenerator = nullptr;
+  size_t indexNum = 0;
 };
 
 void prepare(SampleContext& context, const char* EngineName, const char* AppName);

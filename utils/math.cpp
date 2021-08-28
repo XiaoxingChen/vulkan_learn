@@ -28,7 +28,7 @@ namespace vk
 {
   namespace su
   {
-    glm::mat4x4 createModelViewProjectionClipMatrix( vk::Extent2D const & extent, float angle )
+    glm::mat4x4 createModelViewProjectionClipMatrix( vk::Extent2D const & extent, float angle, float scale )
     {
       float fov = glm::radians( 45.0f );
       if ( extent.width > extent.height )
@@ -36,8 +36,9 @@ namespace vk
         fov *= static_cast<float>( extent.height ) / static_cast<float>( extent.width );
       }
 
-      // glm::mat4x4 model = glm::mat4x4( 1.0f );
-      glm::mat4x4 model = glm::mat4_cast(glm::angleAxis(angle, glm::vec3(1,0,0)));
+      glm::mat4x4 scaleMat = glm::mat4x4( scale );
+      scaleMat[3][3] = 1.;
+      glm::mat4x4 model = glm::mat4_cast(glm::angleAxis(angle, glm::vec3(1,0,0))) * scaleMat;
       glm::mat4x4 view =
         glm::lookAt( glm::vec3( -5.0f, 3.0f, -10.0f ), glm::vec3( 0.0f, 0.0f, 0.0f ), glm::vec3( 0.0f, -1.0f, 0.0f ) );
       glm::mat4x4 projection = glm::perspective( fov, 1.0f, 0.1f, 100.0f );

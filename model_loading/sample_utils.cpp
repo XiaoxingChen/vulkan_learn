@@ -74,8 +74,8 @@ void prepare(SampleContext& context, const char* EngineName, const char* AppName
     context.pipelineCache,
     std::make_pair( context.vertexShaderModule, nullptr ),
     std::make_pair( context.fragmentShaderModule, nullptr ),
-    sizeof( coloredCubeData[0] ),
-    { { vk::Format::eR32G32B32A32Sfloat, 0 }, { vk::Format::eR32G32B32A32Sfloat, 16 } },
+    sizeof( float ) * 6,
+    { { vk::Format::eR32G32B32A32Sfloat, 0 }, { vk::Format::eR32G32Sfloat, 16 } },
     vk::FrontFace::eClockwise,
     true,
     context.pipelineLayout,
@@ -125,6 +125,7 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
     commandBuffer.begin( vk::CommandBufferBeginInfo( vk::CommandBufferUsageFlags() ) );
 
     modelResource.pTextureData->setImage(context.device, commandBuffer, *modelResource.pTextureGenerator);
+    // modelResource.pTextureData->setImage(context.device, commandBuffer, vk::su::CheckerboardImageGenerator());
 
     std::array<vk::ClearValue, 2> clearValues;
     clearValues[0].color        = vk::ClearColorValue( std::array<float, 4>( { { 0.2f, 0.2f, 0.2f, 0.2f } } ) );
@@ -150,7 +151,8 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
                                              1.0f ) );
     commandBuffer.setScissor( 0, vk::Rect2D( vk::Offset2D( 0, 0 ), context.pSurfaceData->extent ) );
 
-    commandBuffer.draw( 12 * 3, 1, 0, 0 );
+    // commandBuffer.draw( 12 * 3, 1, 0, 0 );
+    commandBuffer.drawIndexed(modelResource.indexNum, 1, 0, 0, 0);
     commandBuffer.endRenderPass();
     commandBuffer.end();
   }
@@ -215,24 +217,51 @@ std::shared_ptr<vk::su::BufferData> createTexturedVertexBuffer(
   const std::vector<float>& vertices,
   const std::vector<float>& texCoord)
 {
+#define USE_GLTF 1
   size_t vertexNum = vertices.size() / 3;
   assert(vertices.size() / 3 == texCoord.size() / 2);
   std::vector<float> texturedData(6 * vertexNum);
   for(size_t i = 0; i < vertexNum; i++)
   {
+#if USE_GLTF
     texturedData.at(6 * i + 0) = vertices.at(3 * i + 0);
     texturedData.at(6 * i + 1) = vertices.at(3 * i + 1);
     texturedData.at(6 * i + 2) = vertices.at(3 * i + 2);
-    texturedData.at(6 * i + 3) = 0;
+    texturedData.at(6 * i + 3) = 1.;
     texturedData.at(6 * i + 4) = texCoord.at(2 * i + 0);
     texturedData.at(6 * i + 5) = texCoord.at(2 * i + 1);
+#else
+    texturedData.at(6 * i + 0) = texturedCubeData[i].x;
+    texturedData.at(6 * i + 1) = texturedCubeData[i].y;
+    texturedData.at(6 * i + 2) = texturedCubeData[i].z;
+    texturedData.at(6 * i + 3) = texturedCubeData[i].w;
+    texturedData.at(6 * i + 4) = texturedCubeData[i].u;
+    texturedData.at(6 * i + 5) = texturedCubeData[i].v;
+#endif
   }
+  // std::cout << vk::su::to_string(texturedData) << std::endl;
+  // std::cout << "memcmp:" << memcmp(texturedCubeData, texturedData.data(), texturedData.size() * sizeof(float)) << std::endl;
+#if USE_GLTF
+  std::cout << "sizeof( float ) * vertexNum * 6: " << sizeof( float ) * vertexNum * 6 << std::endl;
+  std::cout << "vertexNum: " << vertexNum  << std::endl;
   auto pVertexBufferData = std::make_shared<vk::su::BufferData> (
      context.physicalDevice, context.device, sizeof( float ) * vertexNum * 6, vk::BufferUsageFlagBits::eVertexBuffer );
   vk::su::copyToDevice( context.device,
                           pVertexBufferData->deviceMemory,
                           texturedData.data(),
-                          texturedData.size() );
+                          texturedData.size(),
+                          sizeof(float));
+#else
+  std::cout << "sizeof( texturedCubeData ): " << sizeof( texturedCubeData ) << std::endl;
+  std::cout << "sizeof( texturedCubeData ) / sizeof( texturedCubeData[0] ) ): " << sizeof( texturedCubeData ) / sizeof( texturedCubeData[0] )  << std::endl;
+  auto pVertexBufferData = std::make_shared<vk::su::BufferData>(
+      context.physicalDevice, context.device, sizeof( texturedCubeData ), vk::BufferUsageFlagBits::eVertexBuffer );
+  vk::su::copyToDevice( context.device,
+                          pVertexBufferData->deviceMemory,
+                          texturedCubeData,
+                          sizeof( texturedCubeData ) / sizeof( texturedCubeData[0] ),
+                          sizeof( texturedCubeData[0] ) );
+#endif
   return pVertexBufferData;
 }
 
@@ -258,7 +287,11 @@ std::shared_ptr<vk::su::PixelsImageGenerator> createImageGenerator(const std::st
 {
   int texWidth, texHeight, texChannels;
   stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-  // std::cout << "[todo]: mem leak!\n" << __FILE__ << ":" << __LINE__ << std::endl;
+  std::cout << "original texChannels: " << texChannels << std::endl;
+  if(3 == texChannels)
+  {
+    texChannels = 4;
+  }
 
   if (!pixels) {
       throw std::runtime_error("failed to load texture image!");
@@ -270,16 +303,29 @@ std::shared_ptr<vk::su::PixelsImageGenerator> createImageGenerator(const std::st
 void prepare(ModelResource& modelResource, const SampleContext& context)
 {
   tinygltf::Model model;
-  std::string filename(assetsFolder() + "Cube.gltf");
+  std::string filename(assetsFolder() + "Duck.gltf");
   loadModel(model, filename);
 
   std::vector<uint16_t> indices = loadMeshIndices(model, 0);
+  modelResource.indexNum = indices.size();
   std::vector<float> vertices = loadMeshAttributes(model, 0, "POSITION");
   std::vector<float> texCoord = loadMeshAttributes(model, 0, "TEXCOORD_0");
 
+  // std::cout << vertices.size() / 3<<  " vertices:\n" ;
+  // std::cout << "vertices:\n" << vk::su::to_string(vertices) << std::endl;
+  // std::cout << "texCoord:\n" << vk::su::to_string(texCoord) << std::endl;
+  // std::cout << "indices:\n" << vk::su::to_string(indices) << std::endl;
+
+  for(size_t i = 0; i < indices.size(); i+= 3)
+  {
+    auto tmp = indices.at(i);
+    indices.at(i) = indices.at(i + 1);
+    indices.at(i + 1) = tmp;
+  }
+
   modelResource.pIndexBuffer = createIndexBuffer(context, indices);
   modelResource.pVertexBuffer = createTexturedVertexBuffer(context, vertices, texCoord);
-  modelResource.pTextureGenerator = createImageGenerator(assetsFolder() + "Cube_BaseColor.png");
+  modelResource.pTextureGenerator = createImageGenerator(assetsFolder() + "DuckCM.png");
   modelResource.pTextureData = std::make_shared<vk::su::TextureData>(
     context.physicalDevice,
     context.device,

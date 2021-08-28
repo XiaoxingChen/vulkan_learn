@@ -50,8 +50,9 @@ int main( int /*argc*/, char ** /*argv*/ )
     /* VULKAN_KEY_START */
     vk::su::BufferData uniformBufferData = vk::su::BufferData(
      context.physicalDevice, context.device, sizeof( glm::mat4x4 ), vk::BufferUsageFlagBits::eUniformBuffer );
-
-    glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent );
+     float angle = 1.3;
+    float modelScale = 5e-2;
+    glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent, angle, modelScale);
     vk::su::copyToDevice( context.device, uniformBufferData.deviceMemory, mvpcMatrix );
 
     vk::su::updateDescriptorSets(
@@ -71,13 +72,11 @@ int main( int /*argc*/, char ** /*argv*/ )
     FrameResource frame;
     prepare(frame, context, modelResource);
 
-    float angle = 0;
-
     while (!glfwWindowShouldClose(context.pSurfaceData->window.handle)) {
             glfwPollEvents();
 
-      angle += 0.01;
-      glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent , angle);
+      angle += 0.001;
+      glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent , angle, modelScale);
       uniformBufferData.upload(context.device, mvpcMatrix);
       draw(context, frame);
 
