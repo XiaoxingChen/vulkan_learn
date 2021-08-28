@@ -1,0 +1,11 @@
+#if !defined(_ASSETS_MANAGER_H_)
+#define _ASSETS_MANAGER_H_
+
+#include <string>
+
+inline std::string assetsFolder()
+{
+    return std::string("@ASSETS_FOLDER@");
+}
+
+#endif // _ASSETS_MANAGER_H_

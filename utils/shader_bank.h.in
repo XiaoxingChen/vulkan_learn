@@ -1,3 +1,6 @@
+#if !defined(_SHADER_BANK_H_)
+#define _SHADER_BANK_H_
+
 #include <string>
 #include <map>
 #include <vector>
@@ -37,3 +40,5 @@ const std::string& read(const std::string& filename)
 }
 
 } // namespace shader_bank
+
+#endif // _SHADER_BANK_H_

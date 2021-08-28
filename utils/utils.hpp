@@ -285,6 +285,8 @@ namespace vk
 
       void operator()( void * data, vk::Extent2D const & extent ) const;
 
+      ~ PixelsImageGenerator() { if(nullptr != m_pixels) delete [] m_pixels;}
+    const vk::Extent2D & extent() const { return m_extent; }
     private:
       vk::Extent2D          m_extent;
       size_t                m_channels;
@@ -455,7 +457,7 @@ namespace vk
                                             std::vector<vk::LayerProperties> const & layerProperties
 #endif
     );
-    std::vector<std::string>             getDeviceExtensions();
+    std::vector<std::string>             getDeviceExtensions(const vk::PhysicalDevice& physicalDevice);
     std::vector<std::string>             getInstanceExtensions();
     vk::DebugUtilsMessengerCreateInfoEXT makeDebugUtilsMessengerCreateInfoEXT();
 #if defined( NDEBUG )

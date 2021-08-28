@@ -558,11 +558,15 @@ namespace vk
       return typeIndex;
     }
 
-    std::vector<std::string> getDeviceExtensions()
+    std::vector<std::string> getDeviceExtensions(const vk::PhysicalDevice& physicalDevice)
     {
-      return { VK_KHR_SWAPCHAIN_EXTENSION_NAME
-      // , "VK_KHR_portability_subset"
-      };
+      std::vector<std::string> extensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+      auto extensionProperties = physicalDevice.enumerateDeviceExtensionProperties();
+      if(contains(extensionProperties, VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME))
+      {
+        extensions.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
+      }
+      return extensions;
     }
 
     std::vector<std::string> getInstanceExtensions()
@@ -590,7 +594,7 @@ namespace vk
 #elif defined( VK_USE_PLATFORM_XLIB_XRANDR_EXT )
       extensions.push_back( VK_EXT_ACQUIRE_XLIB_DISPLAY_EXTENSION_NAME );
 #endif
-      extensions.push_back("VK_KHR_get_physical_device_properties2");
+      extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 #if 1
       glfwInit();
       uint32_t     glfwExtensionCount = 0;
@@ -905,8 +909,10 @@ namespace vk
 
       device.bindImageMemory( image, deviceMemory, 0 );
 
+      // vk::ComponentMapping componentMapping(
+      //   ComponentSwizzle::eR, ComponentSwizzle::eG, ComponentSwizzle::eB, ComponentSwizzle::eA );
       vk::ComponentMapping componentMapping(
-        ComponentSwizzle::eR, ComponentSwizzle::eG, ComponentSwizzle::eB, ComponentSwizzle::eA );
+        ComponentSwizzle::eIdentity, ComponentSwizzle::eIdentity, ComponentSwizzle::eIdentity, ComponentSwizzle::eIdentity );
       vk::ImageSubresourceRange imageSubresourceRange( aspectMask, 0, 1, 0, 1 );
       vk::ImageViewCreateInfo   imageViewCreateInfo(
         {}, image, vk::ImageViewType::e2D, format, componentMapping, imageSubresourceRange );
