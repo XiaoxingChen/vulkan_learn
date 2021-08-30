@@ -286,7 +286,7 @@ namespace vk
 
       void operator()( void * data, vk::Extent2D const & extent ) const;
 
-      ~ PixelsImageGenerator() { if(nullptr != m_pixels) delete [] m_pixels;}
+      ~ PixelsImageGenerator() { }
     const vk::Extent2D & extent() const { return m_extent; }
     private:
       vk::Extent2D          m_extent;

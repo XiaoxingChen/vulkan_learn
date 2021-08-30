@@ -20,6 +20,7 @@ struct SampleContext
   vk::Queue presentQueue;
   vk::su::SwapChainData swapChainData;
   std::shared_ptr<vk::su::SurfaceData> pSurfaceData = nullptr;
+  std::shared_ptr<vk::su::DepthBufferData> pDepthBuffer = nullptr;
   vk::PipelineLayout pipelineLayout;
   vk::RenderPass renderPass;
   vk::Pipeline graphicsPipeline;

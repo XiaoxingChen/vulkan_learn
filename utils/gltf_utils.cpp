@@ -117,3 +117,35 @@ std::vector<uint16_t> loadMeshIndices(
 #endif
     return ret;
 }
+
+const tinygltf::Image& loadMeshTexture(tinygltf::Model& model, size_t tex_idx)
+{
+    if (model.textures.size() == 0)
+        throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__));
+
+    tinygltf::Texture &tex = model.textures[tex_idx];
+
+    if (tex.source < 0)
+        throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__));
+
+    tinygltf::Image &image = model.images[tex.source];
+
+    if(image.component != TINYGLTF_TYPE_VEC3 && image.component != TINYGLTF_TYPE_VEC4)
+    {
+        std::cout << "image.component: " << image.component << std::endl;
+        throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__));
+    }
+
+    size_t pixel_stride =
+        image.component == TINYGLTF_TYPE_VEC3 ? 3 :
+        image.component == TINYGLTF_TYPE_VEC4 ? 4 : 0;
+
+    std::cout << "pixel channel: " << pixel_stride
+    << ", image w: " << image.width << ", h: " << image.height
+    << std::endl;
+
+    if (image.bits != 8)
+        throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__));
+
+    return image;
+}

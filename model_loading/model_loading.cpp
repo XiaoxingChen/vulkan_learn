@@ -52,6 +52,7 @@ int main( int /*argc*/, char ** /*argv*/ )
      context.physicalDevice, context.device, sizeof( glm::mat4x4 ), vk::BufferUsageFlagBits::eUniformBuffer );
      float angle = 1.3;
     float modelScale = 5e-2;
+    // float modelScale = 1.f;
     glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent, angle, modelScale);
     vk::su::copyToDevice( context.device, uniformBufferData.deviceMemory, mvpcMatrix );
 

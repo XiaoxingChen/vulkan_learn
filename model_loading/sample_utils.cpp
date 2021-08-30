@@ -11,6 +11,7 @@ void prepare(SampleContext& context, const char* EngineName, const char* AppName
 
   context.debugUtilsMessenger =
       context.instance.createDebugUtilsMessengerEXT( vk::su::makeDebugUtilsMessengerCreateInfoEXT() );
+  LOGI("{}:{}", __FILE__, __LINE__);
 
   context.physicalDevice = context.instance.enumeratePhysicalDevices().front();
 
@@ -35,6 +36,12 @@ void prepare(SampleContext& context, const char* EngineName, const char* AppName
                                         graphicsAndPresentQueueFamilyIndex.first,
                                         graphicsAndPresentQueueFamilyIndex.second );
 
+  context.pDepthBuffer = std::make_shared<vk::su::DepthBufferData>(
+      context.physicalDevice,
+      context.device,
+      vk::Format::eD16Unorm,
+      context.pSurfaceData->extent);
+
   context.descriptorSetLayout = vk::su::createDescriptorSetLayout(
     context.device, {
       { vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex },
@@ -47,7 +54,7 @@ void prepare(SampleContext& context, const char* EngineName, const char* AppName
   context.renderPass = vk::su::createRenderPass(
     context.device,
     vk::su::pickSurfaceFormat(context.physicalDevice.getSurfaceFormatsKHR( context.pSurfaceData->surface ) ).format,
-    vk::Format::eUndefined);
+    context.pDepthBuffer->format);
 
   LOGI("{}:{}", __FILE__, __LINE__);
 
@@ -58,7 +65,7 @@ void prepare(SampleContext& context, const char* EngineName, const char* AppName
     vk::su::createShaderModule( context.device, vk::ShaderStageFlagBits::eFragment, fragmentShaderText_T_C );
   glslang::FinalizeProcess();
   context.framebuffers = vk::su::createFramebuffers(
-    context.device, context.renderPass, context.swapChainData.imageViews, nullptr, context.pSurfaceData->extent );
+    context.device, context.renderPass, context.swapChainData.imageViews, context.pDepthBuffer->imageView, context.pSurfaceData->extent );
 
   context.descriptorPool =
     vk::su::createDescriptorPool( context.device, {
@@ -76,7 +83,7 @@ void prepare(SampleContext& context, const char* EngineName, const char* AppName
     std::make_pair( context.fragmentShaderModule, nullptr ),
     sizeof( float ) * 6,
     { { vk::Format::eR32G32B32A32Sfloat, 0 }, { vk::Format::eR32G32Sfloat, 16 } },
-    vk::FrontFace::eClockwise,
+    vk::FrontFace::eCounterClockwise,
     true,
     context.pipelineLayout,
     context.renderPass );
@@ -101,7 +108,7 @@ void tearDown(SampleContext& context)
   context.device.destroyPipelineLayout( context.pipelineLayout );
   context.device.destroyDescriptorSetLayout( context.descriptorSetLayout );
 
-  // depthBufferData.clear( context.device );
+  context.pDepthBuffer->clear( context.device );
   context.swapChainData.clear( context.device );
   context.device.destroy();
   context.instance.destroySurfaceKHR( context.pSurfaceData->surface );
@@ -310,22 +317,16 @@ void prepare(ModelResource& modelResource, const SampleContext& context)
   modelResource.indexNum = indices.size();
   std::vector<float> vertices = loadMeshAttributes(model, 0, "POSITION");
   std::vector<float> texCoord = loadMeshAttributes(model, 0, "TEXCOORD_0");
+  auto gltfImage = loadMeshTexture(model, 0);
 
   // std::cout << vertices.size() / 3<<  " vertices:\n" ;
   // std::cout << "vertices:\n" << vk::su::to_string(vertices) << std::endl;
   // std::cout << "texCoord:\n" << vk::su::to_string(texCoord) << std::endl;
   // std::cout << "indices:\n" << vk::su::to_string(indices) << std::endl;
 
-  for(size_t i = 0; i < indices.size(); i+= 3)
-  {
-    auto tmp = indices.at(i);
-    indices.at(i) = indices.at(i + 1);
-    indices.at(i + 1) = tmp;
-  }
-
   modelResource.pIndexBuffer = createIndexBuffer(context, indices);
   modelResource.pVertexBuffer = createTexturedVertexBuffer(context, vertices, texCoord);
-  modelResource.pTextureGenerator = createImageGenerator(assetsFolder() + "DuckCM.png");
+  modelResource.pTextureGenerator = std::make_shared<vk::su::PixelsImageGenerator>(vk::Extent2D(gltfImage.width, gltfImage.height), 4, gltfImage.image.data());
   modelResource.pTextureData = std::make_shared<vk::su::TextureData>(
     context.physicalDevice,
     context.device,
@@ -339,21 +340,26 @@ void tearDown(ModelResource& modelResource, const SampleContext& context)
   {
     modelResource.pVertexBuffer->clear( context.device );
     modelResource.pVertexBuffer.reset();
+    LOGI("{}:{}", __FILE__, __LINE__);
   }
 
   if(modelResource.pIndexBuffer)
   {
     modelResource.pIndexBuffer->clear( context.device );
     modelResource.pIndexBuffer.reset();
+    LOGI("{}:{}", __FILE__, __LINE__);
   }
 
   if(modelResource.pTextureGenerator)
   {
     modelResource.pTextureGenerator.reset();
+    LOGI("{}:{}", __FILE__, __LINE__);
   }
 
   if(modelResource.pTextureData)
   {
+    modelResource.pTextureData->clear(context.device);
     modelResource.pTextureData.reset();
+    LOGI("{}:{}", __FILE__, __LINE__);
   }
 }
