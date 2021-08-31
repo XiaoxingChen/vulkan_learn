@@ -51,9 +51,7 @@ int main( int /*argc*/, char ** /*argv*/ )
     vk::su::BufferData uniformBufferData = vk::su::BufferData(
      context.physicalDevice, context.device, sizeof( glm::mat4x4 ), vk::BufferUsageFlagBits::eUniformBuffer );
      float angle = 1.3;
-    float modelScale = 5e-2;
-    // float modelScale = 1.f;
-    glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent, angle, modelScale);
+    glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent, angle, modelResource.scale);
     vk::su::copyToDevice( context.device, uniformBufferData.deviceMemory, mvpcMatrix );
 
     vk::su::updateDescriptorSets(
@@ -77,7 +75,7 @@ int main( int /*argc*/, char ** /*argv*/ )
             glfwPollEvents();
 
       angle += 0.001;
-      glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent , angle, modelScale);
+      glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent , angle, modelResource.scale);
       uniformBufferData.upload(context.device, mvpcMatrix);
       draw(context, frame);
 

@@ -49,6 +49,7 @@ struct ModelResource
   std::shared_ptr<vk::su::TextureData> pTextureData = nullptr;
   std::shared_ptr<vk::su::PixelsImageGenerator> pTextureGenerator = nullptr;
   size_t indexNum = 0;
+  float scale = 1.f;
 };
 
 void prepare(SampleContext& context, const char* EngineName, const char* AppName);

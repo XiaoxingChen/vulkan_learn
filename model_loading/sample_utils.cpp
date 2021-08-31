@@ -131,8 +131,13 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
     auto & commandBuffer(commandBuffers.at(i));
     commandBuffer.begin( vk::CommandBufferBeginInfo( vk::CommandBufferUsageFlags() ) );
 
-    modelResource.pTextureData->setImage(context.device, commandBuffer, *modelResource.pTextureGenerator);
-    // modelResource.pTextureData->setImage(context.device, commandBuffer, vk::su::CheckerboardImageGenerator());
+    if(modelResource.pTextureGenerator)
+    {
+      modelResource.pTextureData->setImage(context.device, commandBuffer, *modelResource.pTextureGenerator);
+    }else
+    {
+      modelResource.pTextureData->setImage(context.device, commandBuffer, vk::su::CheckerboardImageGenerator());
+    }
 
     std::array<vk::ClearValue, 2> clearValues;
     clearValues[0].color        = vk::ClearColorValue( std::array<float, 4>( { { 0.2f, 0.2f, 0.2f, 0.2f } } ) );
@@ -317,7 +322,7 @@ void prepare(ModelResource& modelResource, const SampleContext& context)
   modelResource.indexNum = indices.size();
   std::vector<float> vertices = loadMeshAttributes(model, 0, "POSITION");
   std::vector<float> texCoord = loadMeshAttributes(model, 0, "TEXCOORD_0");
-  auto gltfImage = loadMeshTexture(model, 0);
+
 
   // std::cout << vertices.size() / 3<<  " vertices:\n" ;
   // std::cout << "vertices:\n" << vk::su::to_string(vertices) << std::endl;
@@ -326,12 +331,19 @@ void prepare(ModelResource& modelResource, const SampleContext& context)
 
   modelResource.pIndexBuffer = createIndexBuffer(context, indices);
   modelResource.pVertexBuffer = createTexturedVertexBuffer(context, vertices, texCoord);
-  modelResource.pTextureGenerator = std::make_shared<vk::su::PixelsImageGenerator>(vk::Extent2D(gltfImage.width, gltfImage.height), 4, gltfImage.image.data());
+  if(model.textures.size() > 0)
+  {
+    auto gltfImage = loadMeshTexture(model, 0);
+    modelResource.pTextureGenerator = std::make_shared<vk::su::PixelsImageGenerator>(vk::Extent2D(gltfImage.width, gltfImage.height), 4, gltfImage.image.data());
+  }
+
   modelResource.pTextureData = std::make_shared<vk::su::TextureData>(
     context.physicalDevice,
     context.device,
-    modelResource.pTextureGenerator->extent(),
+    modelResource.pTextureGenerator ? modelResource.pTextureGenerator->extent() : vk::Extent2D(256, 256),
     vk::ImageUsageFlags(),vk::FormatFeatureFlags(),false, true);
+
+  modelResource.scale = adaptiveModelScale(model, 0, 5);
 }
 
 void tearDown(ModelResource& modelResource, const SampleContext& context)

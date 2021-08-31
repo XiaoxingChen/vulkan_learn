@@ -30,6 +30,27 @@ bool loadModel(tinygltf::Model& model, const std::string& filename)
     return res;
 }
 
+float adaptiveModelScale(
+    tinygltf::Model& model,
+    size_t mesh_idx,
+    float target_magnitide)
+{
+    const std::string type("POSITION");
+
+    auto & mesh(model.meshes.at(mesh_idx));
+    auto& primitive = mesh.primitives.at(0);
+    assert(primitive.attributes.count(type) > 0);
+
+    const tinygltf::Accessor& accessor = model.accessors[primitive.attributes[type]];
+    float max_length = 0;
+    for(size_t i = 0; i < accessor.minValues.size(); i++)
+    {
+        float length = accessor.maxValues.at(i) - accessor.minValues.at(i);
+        max_length = std::max(max_length, length);
+    }
+    return target_magnitide / max_length;
+}
+
 std::vector<float> loadMeshAttributes(
     tinygltf::Model& model,
     size_t mesh_idx,
@@ -96,25 +117,30 @@ std::vector<uint16_t> loadMeshIndices(
 
     const tinygltf::Accessor& accessor = model.accessors[primitive.indices];;
 
-    if(accessor.componentType != TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
-        throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__));
+    // if(accessor.componentType != TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
+    // {
+    //     std::cout << "accessor.componentType: " << accessor.componentType << std::endl;
+    //     throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__));
+    // }
 
     const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
     const tinygltf::Buffer&     buffer     = model.buffers[bufferView.buffer];
 
-    const uint16_t* indices = reinterpret_cast<const uint16_t*>(&buffer.data[bufferView.byteOffset + accessor.byteOffset]);
-
     std::vector<uint16_t> ret(accessor.count);
-    for(size_t i = 0; i < ret.size(); i++) ret.at(i) = indices[i];
-#if 0
-    for (size_t i = 0; i < accessor.count; i+=3)
+    if(accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
     {
-        // ret.push_back({indices[i], indices[i+1], indices[i+2]});
-        ret(0, i / 3) = indices[i];
-        ret(1, i / 3) = indices[i + 1];
-        ret(2, i / 3) = indices[i + 2];
+        const uint16_t* indices = reinterpret_cast<const uint16_t*>(&buffer.data[bufferView.byteOffset + accessor.byteOffset]);
+        for(size_t i = 0; i < ret.size(); i++) ret.at(i) = indices[i];
+    }else if(accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+    {
+        const uint8_t* indices = reinterpret_cast<const uint8_t*>(&buffer.data[bufferView.byteOffset + accessor.byteOffset]);
+        for(size_t i = 0; i < ret.size(); i++) ret.at(i) = indices[i];
+    }else
+    {
+        std::cout << "accessor.componentType: " << accessor.componentType << std::endl;
+        throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__));
     }
-#endif
+
     return ret;
 }
 
