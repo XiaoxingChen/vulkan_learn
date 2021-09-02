@@ -29,6 +29,7 @@
 
 #include <iomanip>
 #include <numeric>
+#include "event_manager.h"
 
 #if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
@@ -878,7 +879,6 @@ namespace vk
                    vk::MemoryPropertyFlagBits::eDeviceLocal,
                    vk::ImageAspectFlagBits::eDepth )
     {}
-
     ImageData::ImageData( vk::PhysicalDevice const & physicalDevice,
                           vk::Device const &         device,
                           vk::Format                 format_,
@@ -1176,6 +1176,8 @@ namespace vk
 
       glfwWindowHint( GLFW_CLIENT_API, GLFW_NO_API );
       GLFWwindow * window = glfwCreateWindow( extent.width, extent.height, windowName.c_str(), nullptr, nullptr );
+      glfwSetKeyCallback(window, keyCallback);
+
       return WindowData( window, windowName, extent );
     }
 

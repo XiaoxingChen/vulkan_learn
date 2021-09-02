@@ -42,6 +42,10 @@ namespace vk
 {
   namespace su
   {
-    glm::mat4x4 createModelViewProjectionClipMatrix( vk::Extent2D const & extent , float angle=0.f, float scale=1.f);
+    glm::mat4x4 createModelViewProjectionClipMatrix(
+      vk::Extent2D const & extent ,
+      float angle=0.f,
+      float scale=1.f,
+      const glm::mat4& view=glm::lookAt( glm::vec3( -5.0f, 3.0f, -10.0f ), glm::vec3( 0.0f, 0.0f, 0.0f ), glm::vec3( 0.0f, -1.0f, 0.0f ) ));
   }
 }  // namespace vk

@@ -28,6 +28,7 @@ set(SOURCES
   shaders.cpp
   utils.cpp
   gltf_utils.cpp
+  event_manager.cpp
 )
 
 source_group(headers FILES ${HEADERS})

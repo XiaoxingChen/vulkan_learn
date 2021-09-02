@@ -27,6 +27,7 @@
 #include <memory>
 
 #include "model_loading/sample_utils.h"
+#include "event_manager.h"
 
 #define DEPTH_BUFFER_DATA 0
 
@@ -50,8 +51,9 @@ int main( int /*argc*/, char ** /*argv*/ )
     /* VULKAN_KEY_START */
     vk::su::BufferData uniformBufferData = vk::su::BufferData(
      context.physicalDevice, context.device, sizeof( glm::mat4x4 ), vk::BufferUsageFlagBits::eUniformBuffer );
-     float angle = 1.3;
-    glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent, angle, modelResource.scale);
+     float angle = 0;
+    glm::mat4x4 viewMat(1.);// = glm::mat4_cast(glm::angleAxis(angle, glm::vec3(1,0,0)));
+    glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent, angle, modelResource.scale, viewMat);
     vk::su::copyToDevice( context.device, uniformBufferData.deviceMemory, mvpcMatrix );
 
     vk::su::updateDescriptorSets(
@@ -74,8 +76,13 @@ int main( int /*argc*/, char ** /*argv*/ )
     while (!glfwWindowShouldClose(context.pSurfaceData->window.handle)) {
             glfwPollEvents();
 
-      angle += 0.001;
-      glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent , angle, modelResource.scale);
+      if (handleExit(vk::su::eventList())) break;
+      auto tfInput = vk::su::handleMotion(vk::su::eventList());
+
+      vk::su::eventList().clear();
+      // angle += 0.001;
+      viewMat = viewMat * tfInput;
+      glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent , angle, modelResource.scale, viewMat);
       uniformBufferData.upload(context.device, mvpcMatrix);
       draw(context, frame);
 
