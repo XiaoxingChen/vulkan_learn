@@ -36,7 +36,9 @@ struct SampleContext
 
 struct FrameResource
 {
-  size_t imageNum;
+  size_t imageNum = 0;
+  size_t counter = 0;
+  decltype(std::chrono::steady_clock::now()) timeStamp;
   std::vector<vk::CommandBuffer> commandBuffers;
   std::vector<vk::Fence> drawFences;
   std::vector<vk::Semaphore> imageAcquiredSemaphores;

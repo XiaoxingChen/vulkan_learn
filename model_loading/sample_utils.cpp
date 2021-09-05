@@ -222,6 +222,17 @@ void draw(SampleContext& context, FrameResource& frame)
       break;
     default: assert( false );  // an unexpected result is returned !
   }
+
+  frame.counter++;
+  static const size_t FPS_PERIOD_BITS = 8;
+  static const size_t FPS_PERIOD = ((1 << FPS_PERIOD_BITS) - 1);
+  if((frame.counter & FPS_PERIOD) == 0)
+  {
+      auto timeCurr = std::chrono::steady_clock::now();
+      std::chrono::duration<double> elapsedSeconds = timeCurr - frame.timeStamp;
+      std::cout << "FPS: " << (FPS_PERIOD)/elapsedSeconds.count() << std::endl;
+      frame.timeStamp = timeCurr;
+  }
 }
 
 std::shared_ptr<vk::su::BufferData> createTexturedVertexBuffer(

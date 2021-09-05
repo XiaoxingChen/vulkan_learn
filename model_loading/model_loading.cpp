@@ -25,6 +25,7 @@
 #include <iostream>
 #include <thread>
 #include <memory>
+#include <chrono>
 
 #include "model_loading/sample_utils.h"
 #include "event_manager.h"
@@ -40,6 +41,8 @@ int main( int /*argc*/, char ** /*argv*/ )
   initLogger();
   SampleContext context;
   ModelResource modelResource;
+  uint32_t frameCounter = 0;
+  auto timePrev = std::chrono::steady_clock::now();
 
   try
   {
@@ -52,8 +55,8 @@ int main( int /*argc*/, char ** /*argv*/ )
     vk::su::BufferData uniformBufferData = vk::su::BufferData(
      context.physicalDevice, context.device, sizeof( glm::mat4x4 ), vk::BufferUsageFlagBits::eUniformBuffer );
      float angle = 0;
-    glm::mat4x4 viewMat(1.);// = glm::mat4_cast(glm::angleAxis(angle, glm::vec3(1,0,0)));
-    glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent, angle, modelResource.scale, viewMat);
+    glm::mat4x4 camPose(1.);// = glm::mat4_cast(glm::angleAxis(angle, glm::vec3(1,0,0)));
+    glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent, angle, modelResource.scale, camPose);
     vk::su::copyToDevice( context.device, uniformBufferData.deviceMemory, mvpcMatrix );
 
     vk::su::updateDescriptorSets(
@@ -77,15 +80,34 @@ int main( int /*argc*/, char ** /*argv*/ )
             glfwPollEvents();
 
       if (handleExit(vk::su::eventList())) break;
-      auto tfInput = vk::su::handleMotion(vk::su::eventList());
-
+      auto tfInput = vk::su::handleMotion(vk::su::eventList(), camPose);
+      // if(vk::su::eventList().size() > 0)
+      // {
+      //   std::cout << glm::to_string(tfInput) << std::endl;
+      // }
       vk::su::eventList().clear();
       // angle += 0.001;
-      viewMat = viewMat * tfInput;
-      glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent , angle, modelResource.scale, viewMat);
+      camPose = camPose * tfInput;
+      float error(0);
+      if(!vk::su::isSE3(tfInput, &error))
+      {
+        std::cout << "tfInput is not SE3! Error: " << error << std::endl;
+        std::cout << glm::to_string(tfInput) << std::endl;
+        if(error > 1.f)
+          break;
+      }
+
+      if(!vk::su::isSE3(camPose, &error))
+      {
+        std::cout << "camPose is not SE3! Error: " << error << std::endl;
+        std::cout << glm::to_string(camPose) << std::endl;
+        if(error > 1.f)
+          break;
+      }
+
+      glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent , angle, modelResource.scale, glm::affineInverse(camPose));
       uniformBufferData.upload(context.device, mvpcMatrix);
       draw(context, frame);
-
     }
 
     context.device.waitIdle();

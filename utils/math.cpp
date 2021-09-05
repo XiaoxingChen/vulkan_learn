@@ -50,5 +50,23 @@ namespace vk
       // clang-format on
       return clip * projection * view * model;
     }
+
+    bool isSE3(const glm::mat4& mat, float* pError, float tol)
+    {
+      float error = 0.f;
+      glm::mat4 pureRot(mat);
+      pureRot[3] = glm::vec4(0,0,0,1);
+      auto expectIdentity = glm::transpose(pureRot) * pureRot;
+      for(size_t i = 0; i < 4; i++)
+      {
+        for(size_t j = 0; j < 4; j++)
+        {
+          float localErr = i == j ? abs(expectIdentity[i][j] - 1.f) : abs(expectIdentity[i][j]);
+          if(localErr > error) error = localErr;
+        }
+      }
+      if(pError) *pError = error;
+      return error < tol;
+    }
   }  // namespace su
 }  // namespace vk

@@ -134,7 +134,7 @@ struct KeyBoardEvent
 };
 void keyCallback(GLFWwindow *window, int key, int /*scancode*/, int action, int /*mods*/);
 
-glm::mat4x4 handleMotion(std::list<KeyBoardEvent>& eventList);
+glm::mat4x4 handleMotion(std::list<KeyBoardEvent>& eventList, const glm::mat4x4& prevPose);
 bool handleExit(const std::list<KeyBoardEvent>& eventList);
 std::list<KeyBoardEvent>& eventList();
 

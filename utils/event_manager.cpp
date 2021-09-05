@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <GLFW/glfw3.h>
+#include "math.hpp"
 #include <set>
 
 namespace vk
@@ -154,7 +155,7 @@ std::list<KeyBoardEvent>& eventList()
 
 void keyCallback(GLFWwindow *window, int key, int /*scancode*/, int action, int /*mods*/)
 {
-    std::cout << "key["<< key << "] action: " << action << std::endl;
+    // std::cout << "key["<< key << "] action: " << action << std::endl;
     eventList().push_back(KeyBoardEvent{
         translate_key_code(key),
         translate_key_action(action)});
@@ -168,11 +169,22 @@ bool handleExit(const std::list<KeyBoardEvent>& eventList)
     }
     return false;
 }
-glm::mat4x4 handleMotion(std::list<KeyBoardEvent>& eventList)
+glm::mat4x4 handleMotion(std::list<KeyBoardEvent>& eventList, const glm::mat4x4& prevPose)
 {
     std::set<KeyCode> relatedKeys{KeyCode::A, KeyCode::S, KeyCode::W, KeyCode::D, KeyCode::Up, KeyCode::Down, KeyCode::Left, KeyCode::Right};
     glm::mat4x4 tf(1.f);
-    const float ROT_STEP = 0.1;
+	glm::mat4x4 prevRot(prevPose);
+	prevRot[3] = glm::vec4(0,0,0,1);
+	float error;
+	if(!vk::su::isSE3(prevRot, &error))
+	{
+		std::cout << "prevRot is not SE3! Error: " << error << std::endl;
+		std::cout << glm::to_string(prevRot) << std::endl;
+		std::cout << "prevPose: " << vk::su::isSE3(prevPose, nullptr) << std::endl;
+		exit(0);
+	}
+
+    const float ROT_STEP = 0.2;
     const float TRA_STEP = 0.5;
     for(auto it = eventList.begin(); it != eventList.end(); )
     {
@@ -186,29 +198,37 @@ glm::mat4x4 handleMotion(std::list<KeyBoardEvent>& eventList)
         glm::mat4x4 localTf(1.f);
         if(it->key == KeyCode::Up)
         {
-            localTf = glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(1,0,0)));
+            localTf = glm::transpose(prevRot) * glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(1,0,0))) * prevRot;
         }else if(it->key == KeyCode::Down)
         {
-            localTf = glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(-1,0,0)));
+            localTf = glm::transpose(prevRot) * glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(-1,0,0))) * prevRot;
         }else if(it->key == KeyCode::Left)
         {
-            localTf = glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(0,1,0)));
+            localTf = glm::transpose(prevRot) * glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(0,1,0))) * prevRot;
         }else if(it->key == KeyCode::Right)
         {
-            localTf = glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(0,-1,0)));
+            localTf = glm::transpose(prevRot) * glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(0,-1,0))) * prevRot;
+			// localTf = glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(0,-1,0)))* prevRot;
         }else if(it->key == KeyCode::W)
         {
-            localTf[3][2] = TRA_STEP;
+            localTf[3][2] = -TRA_STEP;
         }else if(it->key == KeyCode::S)
         {
-            localTf[3][2] = -TRA_STEP;
+            localTf[3][2] = TRA_STEP;
         }else if(it->key == KeyCode::A)
         {
-            localTf[3][0] = TRA_STEP;
+            localTf[3][0] = -TRA_STEP;
         }else if(it->key == KeyCode::D)
         {
-            localTf[3][0] = -TRA_STEP;
+            localTf[3][0] = TRA_STEP;
         }
+		// float error;
+		// if(!vk::su::isSE3(localTf, &error))
+		// {
+		// 	std::cout << "localTf is not SE3! Error: " << error << std::endl;
+		// 	std::cout << glm::to_string(localTf) << std::endl;
+		// 	std::cout << glm::to_string(glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(1,0,0)))) << std::endl;
+		// }
         tf = tf * localTf;
         it = eventList.erase(it);
     }

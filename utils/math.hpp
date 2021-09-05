@@ -33,6 +33,9 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
+ #define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 
 #if defined( _MSC_VER )
 #  pragma warning( pop )
@@ -47,5 +50,6 @@ namespace vk
       float angle=0.f,
       float scale=1.f,
       const glm::mat4& view=glm::lookAt( glm::vec3( -5.0f, 3.0f, -10.0f ), glm::vec3( 0.0f, 0.0f, 0.0f ), glm::vec3( 0.0f, -1.0f, 0.0f ) ));
+    bool isSE3(const glm::mat4& mat, float* error=nullptr, float tol=1e-3);
   }
 }  // namespace vk
