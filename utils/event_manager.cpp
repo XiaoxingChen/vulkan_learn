@@ -184,7 +184,7 @@ glm::mat4x4 handleMotion(std::list<KeyBoardEvent>& eventList, const glm::mat4x4&
 		exit(0);
 	}
 
-    const float ROT_STEP = 0.2;
+    const float ROT_STEP = 0.1;
     const float TRA_STEP = 0.5;
     for(auto it = eventList.begin(); it != eventList.end(); )
     {
@@ -198,17 +198,17 @@ glm::mat4x4 handleMotion(std::list<KeyBoardEvent>& eventList, const glm::mat4x4&
         glm::mat4x4 localTf(1.f);
         if(it->key == KeyCode::Up)
         {
-            localTf = glm::transpose(prevRot) * glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(1,0,0))) * prevRot;
+            localTf = glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(1,0,0)));
         }else if(it->key == KeyCode::Down)
         {
-            localTf = glm::transpose(prevRot) * glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(-1,0,0))) * prevRot;
+            localTf = glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(-1,0,0)));
         }else if(it->key == KeyCode::Left)
         {
-            localTf = glm::transpose(prevRot) * glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(0,1,0))) * prevRot;
+            localTf = glm::affineInverse(prevRot) * glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(0,1,0))) * prevRot;
         }else if(it->key == KeyCode::Right)
         {
-            localTf = glm::transpose(prevRot) * glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(0,-1,0))) * prevRot;
-			// localTf = glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(0,-1,0)))* prevRot;
+            localTf = glm::affineInverse(prevRot) * glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(0,-1,0))) * prevRot;
+
         }else if(it->key == KeyCode::W)
         {
             localTf[3][2] = -TRA_STEP;
