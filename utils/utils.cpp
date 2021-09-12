@@ -264,6 +264,29 @@ namespace vk
       return result.value;
     }
 
+    vk::Pipeline createComputePipeline(
+      vk::Device const & device,
+      const vk::ShaderModule & computeShaderModule,
+      vk::PipelineLayout const & pipelineLayout)
+    {
+      vk::PipelineShaderStageCreateInfo pipelineShaderStageCreateInfo(
+        vk::PipelineShaderStageCreateFlags(),
+        vk::ShaderStageFlagBits::eCompute,
+        computeShaderModule,
+        "main",
+        nullptr);
+
+      vk::ComputePipelineCreateInfo pipelineCreateInfo(
+        vk::PipelineCreateFlags(),
+        pipelineShaderStageCreateInfo,
+        pipelineLayout);
+
+      auto result = device.createComputePipeline(
+        nullptr, pipelineCreateInfo, nullptr);
+      assert( result.result == vk::Result::eSuccess );
+      return result.value;
+
+    }
     std::vector<char const *> gatherExtensions( std::vector<std::string> const & extensions
 #if !defined( NDEBUG )
                                                 ,
@@ -491,6 +514,17 @@ namespace vk
       return VK_TRUE;
     }
 
+    uint32_t findQueueFamilyIndex( std::vector<vk::QueueFamilyProperties> const & queueFamilyProperties, vk::QueueFlagBits targetFlags )
+    {
+      // get the first index into queueFamiliyProperties which supports graphics
+      std::vector<vk::QueueFamilyProperties>::const_iterator graphicsQueueFamilyProperty = std::find_if(
+        queueFamilyProperties.begin(),
+        queueFamilyProperties.end(),
+        [&]( vk::QueueFamilyProperties const & qfp ) { return qfp.queueFlags & targetFlags; } );
+      assert( graphicsQueueFamilyProperty != queueFamilyProperties.end() );
+      return static_cast<uint32_t>( std::distance( queueFamilyProperties.begin(), graphicsQueueFamilyProperty ) );
+    }
+
     uint32_t findGraphicsQueueFamilyIndex( std::vector<vk::QueueFamilyProperties> const & queueFamilyProperties )
     {
       // get the first index into queueFamiliyProperties which supports graphics
@@ -508,7 +542,7 @@ namespace vk
       std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
       assert( queueFamilyProperties.size() < std::numeric_limits<uint32_t>::max() );
 
-      uint32_t graphicsQueueFamilyIndex = findGraphicsQueueFamilyIndex( queueFamilyProperties );
+      uint32_t graphicsQueueFamilyIndex = findQueueFamilyIndex( queueFamilyProperties, vk::QueueFlagBits::eGraphics );
       if ( physicalDevice.getSurfaceSupportKHR( graphicsQueueFamilyIndex, surface ) )
       {
         return std::make_pair(

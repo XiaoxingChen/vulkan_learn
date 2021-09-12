@@ -1,0 +1,24 @@
+#include <string>
+#include <map>
+#include <vector>
+#include <sstream>
+#include <fstream>
+
+namespace
+{
+
+const std::string shaderFolder("@SHADER_FOLDER_STR@");
+const std::string spirvFolder("@SPIRV_FOLDER_STR@");
+
+} // namespace null
+
+std::string readShaderSource(const std::string& filename)
+{
+    std::ifstream input_file( shaderFolder + filename);
+    if (!input_file.is_open()) {
+        return std::string("");
+    }
+    return std::string((std::istreambuf_iterator<char>(input_file)), std::istreambuf_iterator<char>());
+}
+
+

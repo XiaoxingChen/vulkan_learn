@@ -8,10 +8,11 @@ void prepare(SampleContext& context, const char* EngineName, const char* AppName
   LOGI("{}:{}", __FILE__, __LINE__);
     context.instance = vk::su::createInstance( AppName, EngineName, {}, vk::su::getInstanceExtensions() );
     LOGI("{}:{}", __FILE__, __LINE__);
-
+#if !NDEBUG
   context.debugUtilsMessenger =
       context.instance.createDebugUtilsMessengerEXT( vk::su::makeDebugUtilsMessengerCreateInfoEXT() );
   LOGI("{}:{}", __FILE__, __LINE__);
+#endif
 
   context.physicalDevice = context.instance.enumeratePhysicalDevices().front();
 
@@ -112,9 +113,9 @@ void tearDown(SampleContext& context)
   context.swapChainData.clear( context.device );
   context.device.destroy();
   context.instance.destroySurfaceKHR( context.pSurfaceData->surface );
-
+#if !NDEBUG
   context.instance.destroyDebugUtilsMessengerEXT( context.debugUtilsMessenger );
-
+#endif
   context.instance.destroy();
 }
 

@@ -8,3 +8,7 @@ target_include_directories(${TARGET_NAME} PUBLIC
     ${PROJECT_BINARY_DIR})
 target_link_libraries(${TARGET_NAME} utils glfw )
 target_compile_definitions(${TARGET_NAME} PUBLIC VK_NO_PROTOTYPES)
+
+if(CMAKE_BUILD_TYPE EQUAL "DEBUG")
+    target_compile_definitions(${TARGET_NAME} PUBLIC NDEBUG)
+endif()

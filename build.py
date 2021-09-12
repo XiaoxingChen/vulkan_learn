@@ -162,7 +162,7 @@ class AndroidTarget(BuildTarget):
         cmake_generate_cmd += self.cmakeBaseOptions()
 
         os.system(cmake_generate_cmd)
-        exit_code = os.system('cmake --build {} -- -j8'.format(self.build_dir))
+        exit_code = os.system('cmake --build {} -- -j4'.format(self.build_dir))
         if exit_code != 0:
             exit(1)
 

@@ -1,0 +1,26 @@
+#include <string>
+#include <map>
+#include <vector>
+
+namespace
+{
+
+@SHADER_HEX_STRING@
+
+} // namespace null
+
+
+std::string readShaderSource(const std::string& filename)
+{
+    static const std::map<std::string, const char*> name_c_str_map{
+        @SHADER_SRC_MAP_STRING@
+    };
+    static std::map<std::string, std::string> name_code_map;
+    static std::string empty;
+    if( 0 == name_c_str_map.count(filename))
+        return empty;
+    if(0 == name_code_map.count(filename))
+        name_code_map[filename] = std::string(name_c_str_map.at(filename));
+    return name_code_map.at(filename);
+}
+

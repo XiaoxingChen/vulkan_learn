@@ -12,7 +12,7 @@ if (NOT DEFINED CMAKE_CXX_STANDARD)
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-include(WriteShaderBank)
+include(textualResourceManager)
 
 add_subdirectory(third_party)
 add_subdirectory(utils)
@@ -22,7 +22,7 @@ endif(BUILD_TEST)
 
 
 # add_subdirectory(create_device)
-# add_subdirectory(simple_compute)
+add_subdirectory(simple_compute)
 # add_subdirectory(vector_crash_android)
 add_subdirectory(hello_triangle)
 add_subdirectory(model_loading)

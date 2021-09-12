@@ -148,6 +148,18 @@ namespace vk
       }
 
       template <typename DataType>
+      std::vector<DataType> download( vk::Device const & device, vk::DeviceSize bufferSize) const
+      {
+        std::vector<DataType> data(bufferSize / sizeof(DataType));
+
+        // copyToDevice( device, deviceMemory, data.data(), data.size(), elementSize );
+        void * dataPtr = device.mapMemory( deviceMemory, 0, bufferSize );
+        memcpy( data.data(), dataPtr,  bufferSize );
+        device.unmapMemory( deviceMemory );
+        return data;
+      }
+
+      template <typename DataType>
       void upload( vk::PhysicalDevice const &    physicalDevice,
                    vk::Device const &            device,
                    vk::CommandPool const &       commandPool,
@@ -425,6 +437,9 @@ namespace vk
                                            bool                                                 depthBuffered,
                                            vk::PipelineLayout const &                           pipelineLayout,
                                            vk::RenderPass const &                               renderPass );
+    vk::Pipeline createComputePipeline( vk::Device const & device,
+                                        const vk::ShaderModule & computeShaderModule,
+                                        vk::PipelineLayout const & pipelineLayout);
     vk::Instance   createInstance( std::string const &              appName,
                                    std::string const &              engineName,
                                    std::vector<std::string> const & layers     = {},
@@ -440,6 +455,7 @@ namespace vk
                                           VkDebugUtilsMessageTypeFlagsEXT              messageTypes,
                                           VkDebugUtilsMessengerCallbackDataEXT const * pCallbackData,
                                           void * /*pUserData*/ );
+    uint32_t findQueueFamilyIndex( std::vector<vk::QueueFamilyProperties> const & queueFamilyProperties, vk::QueueFlagBits targetFlags=vk::QueueFlagBits::eGraphics);
     uint32_t findGraphicsQueueFamilyIndex( std::vector<vk::QueueFamilyProperties> const & queueFamilyProperties );
     std::pair<uint32_t, uint32_t> findGraphicsAndPresentQueueFamilyIndex( vk::PhysicalDevice     physicalDevice,
                                                                           vk::SurfaceKHR const & surface );
