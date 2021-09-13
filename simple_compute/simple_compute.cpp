@@ -29,7 +29,7 @@ struct ComputeSampleContext
 void prepare(ComputeSampleContext& context)
 {
     LOGI("{}:{}", __FILE__, __LINE__);
-    context.instance = vk::su::createInstance( "simple_compute", "xx_engine", {"VK_LAYER_KHRONOS_validation"} );
+    context.instance = vk::su::createInstance( "simple_compute", "xx_engine", {"VK_LAYER_KHRONOS_validation"}, vk::su::getInstanceExtensions() );
     LOGI("{}:{}", __FILE__, __LINE__);
 #if !defined( NDEBUG )
     LOGI("{}:{}", __FILE__, __LINE__);
@@ -42,7 +42,7 @@ void prepare(ComputeSampleContext& context)
     context.computeQueueFamilyIndex =
       vk::su::findQueueFamilyIndex( context.physicalDevice.getQueueFamilyProperties(), vk::QueueFlagBits::eCompute );
     LOGI("{}:{}", __FILE__, __LINE__);
-    context.device = vk::su::createDevice( context.physicalDevice, context.computeQueueFamilyIndex );
+    context.device = vk::su::createDevice( context.physicalDevice, context.computeQueueFamilyIndex, vk::su::getDeviceExtensions(context.physicalDevice) );
     context.computeQueue = context.device.getQueue(context.computeQueueFamilyIndex, 0);
 
     context.descriptorSetLayout = vk::su::createDescriptorSetLayout(
