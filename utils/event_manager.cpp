@@ -171,7 +171,7 @@ bool handleExit(const std::list<KeyBoardEvent>& eventList)
 }
 glm::mat4x4 handleMotion(std::list<KeyBoardEvent>& eventList, const glm::mat4x4& prevPose)
 {
-    std::set<KeyCode> relatedKeys{KeyCode::A, KeyCode::S, KeyCode::W, KeyCode::D, KeyCode::Up, KeyCode::Down, KeyCode::Left, KeyCode::Right};
+    std::set<KeyCode> relatedKeys{KeyCode::A, KeyCode::S, KeyCode::W, KeyCode::D, KeyCode::I, KeyCode::K, KeyCode::Up, KeyCode::Down, KeyCode::Left, KeyCode::Right};
     glm::mat4x4 tf(1.f);
 	glm::mat4x4 prevRot(prevPose);
 	prevRot[3] = glm::vec4(0,0,0,1);
@@ -215,6 +215,12 @@ glm::mat4x4 handleMotion(std::list<KeyBoardEvent>& eventList, const glm::mat4x4&
         }else if(it->key == KeyCode::S)
         {
             localTf[3][2] = TRA_STEP;
+        }else if(it->key == KeyCode::K)
+        {
+            localTf[3][1] = -TRA_STEP;
+        }else if(it->key == KeyCode::I)
+        {
+            localTf[3][1] = TRA_STEP;
         }else if(it->key == KeyCode::A)
         {
             localTf[3][0] = -TRA_STEP;

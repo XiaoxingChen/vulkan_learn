@@ -118,3 +118,13 @@ static const VertexPT texturedCubeData[] =
   {  1.0f, -1.0f,  1.0f, 1.0f,    0.0f, 0.0f },
 };
 
+static const VertexPT texturedRectangleData[] =
+{
+  { -1.0f, -1.0f, -1.0f, 1.0f,    0.0f, 0.0f },
+  {  1.0f, -1.0f, -1.0f, 1.0f,    1.0f, 0.0f },
+  {  1.0f,  1.0f, -1.0f, 1.0f,    1.0f, 1.0f },
+  { -1.0f, -1.0f, -1.0f, 1.0f,    0.0f, 0.0f },
+  {  1.0f,  1.0f, -1.0f, 1.0f,    1.0f, 1.0f },
+  { -1.0f,  1.0f, -1.0f, 1.0f,    0.0f, 1.0f }
+};
+

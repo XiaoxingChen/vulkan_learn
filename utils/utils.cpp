@@ -29,6 +29,7 @@
 
 #include <iomanip>
 #include <numeric>
+#include <stb_image.h>
 #include "event_manager.h"
 
 #if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
@@ -1250,6 +1251,23 @@ namespace vk
 #endif
       return instanceCreateInfo;
     }
+
+  std::shared_ptr<vk::su::PixelsImageGenerator> createImageGenerator(const std::string& filename)
+  {
+    int texWidth, texHeight, texChannels;
+    stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    std::cout << "original texChannels: " << texChannels << ", size: " << texWidth << "," << texHeight << std::endl;
+    if(3 == texChannels)
+    {
+      texChannels = 4;
+    }
+
+    if (!pixels) {
+        throw std::runtime_error("failed to load texture image!");
+    }
+    auto img = std::make_shared<vk::su::PixelsImageGenerator>(vk::Extent2D(texWidth, texHeight), texChannels, pixels);
+    return img;
+  }
 
   }  // namespace su
 }  // namespace vk

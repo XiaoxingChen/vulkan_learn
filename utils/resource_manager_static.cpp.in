@@ -9,6 +9,7 @@ namespace
 
 const std::string shaderFolder("@SHADER_FOLDER_STR@");
 const std::string spirvFolder("@SPIRV_FOLDER_STR@");
+const std::string ASSETS_FOLDER("@ASSETS_FOLDER_STR@");
 
 } // namespace null
 
@@ -19,6 +20,11 @@ std::string readShaderSource(const std::string& filename)
         return std::string("");
     }
     return std::string((std::istreambuf_iterator<char>(input_file)), std::istreambuf_iterator<char>());
+}
+
+std::string assetsFolder()
+{
+    return ASSETS_FOLDER;
 }
 
 

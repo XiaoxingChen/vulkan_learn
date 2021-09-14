@@ -3,7 +3,6 @@
 #include "logging.h"
 #include "SPIRV/GlslangToSpv.h"
 #include "shaders.hpp"
-#include "shader_bank.h"
 #include "resource_manager.h"
 
 #include <iostream>
@@ -94,10 +93,6 @@ void tearDown(ComputeSampleContext& context)
   context.instance.destroy();
 }
 
-vk::CommandBuffer createCommandBuffer(const ComputeSampleContext& context)
-{
-
-}
 const int WIDTH = 4; // Size of rendered mandelbrot set.
 const int HEIGHT = 4; // Size of renderered mandelbrot set.
 const int WORKGROUP_SIZE = 32; // Workgroup size in compute shader.

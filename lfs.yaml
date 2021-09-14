@@ -15,3 +15,6 @@ urls:
   - "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/Cube/glTF/Cube_BaseColor.png"
   - "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/Cube/glTF/Cube_MetallicRoughness.png"
   - "https://raw.githubusercontent.com/KhronosGroup/Vulkan-Samples-Assets/177aea4beaa264e6e9823c80d9d0460e61db222f/scenes/tunnel_cylinder.gltf"
+renamings:
+  damaged_helmet.png:
+    - "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/DamagedHelmet/screenshot/screenshot.png"

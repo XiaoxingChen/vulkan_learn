@@ -502,6 +502,7 @@ namespace vk
       std::vector<vk::su::TextureData> const &                                                        textureData,
       uint32_t bindingOffset = 0 );
 
+std::shared_ptr<vk::su::PixelsImageGenerator> createImageGenerator(const std::string& filename);
 
 template<typename DType>
 inline typename std::enable_if<std::is_integral<DType>::value , std::string>::type

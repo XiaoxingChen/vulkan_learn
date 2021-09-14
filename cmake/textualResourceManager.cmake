@@ -16,3 +16,20 @@ function(serializeToByteString RESOURCE_FOLDER RESOURCE_LIST OUT_BYTE_STR OUT_MA
     set(${OUT_MAP_STR} ${MAP_STR} PARENT_SCOPE)
 
 endfunction(serializeToByteString)
+
+function(generateShaderManagerCode RESOURCE_FOLDER RESOURCE_LIST OUT_FILENAME IS_STATIC)
+    set(RESOURCE_MANAGER_TEMPLATE "invalid")
+    if(IS_STATIC)
+        set(SHADER_FOLDER_STR ${RESOURCE_FOLDER})
+        configure_file (${STATIC_RESOURCE_MANAGER_TEMPLATE} ${OUT_FILENAME})
+    elseif(NOT IS_STATIC)
+        serializeToByteString(
+            ${RESOURCE_FOLDER}
+            "${RESOURCE_LIST}"
+            SHADER_HEX_STRING
+            SHADER_SRC_MAP_STRING)
+        configure_file (${BINARIZE_RESOURCE_MANAGER_TEMPLATE} ${OUT_FILENAME})
+    endif()
+
+endfunction(generateShaderManagerCode)
+

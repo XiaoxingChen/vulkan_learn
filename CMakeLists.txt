@@ -20,9 +20,13 @@ if(BUILD_TEST)
     add_subdirectory(tests)
 endif(BUILD_TEST)
 
+set(STATIC_RESOURCE_MANAGER_TEMPLATE ${PROJECT_SOURCE_DIR}/utils/resource_manager_static.cpp.in)
+set(BINARIZE_RESOURCE_MANAGER_TEMPLATE ${PROJECT_SOURCE_DIR}/utils/resource_manager_binarize.cpp.in)
+set(ASSETS_FOLDER_STR ${PROJECT_SOURCE_DIR}/build/assets/)
 
 # add_subdirectory(create_device)
 add_subdirectory(simple_compute)
 # add_subdirectory(vector_crash_android)
 add_subdirectory(hello_triangle)
 add_subdirectory(model_loading)
+add_subdirectory(image_processing_toys)

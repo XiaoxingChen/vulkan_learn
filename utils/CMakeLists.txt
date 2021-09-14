@@ -59,6 +59,6 @@ target_link_libraries(utils PUBLIC tinygltf)
 target_compile_definitions(utils PUBLIC VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1 VK_ENABLE_BETA_EXTENSIONS)
 target_include_directories(utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-set(ASSETS_FOLDER ${PROJECT_BINARY_DIR}/../../assets/)
-configure_file(assets_manager.h.in ${CMAKE_CURRENT_BINARY_DIR}/assets_manager.h)
+# set(ASSETS_FOLDER ${PROJECT_BINARY_DIR}/../../assets/)
+# configure_file(assets_manager.h.in ${CMAKE_CURRENT_BINARY_DIR}/assets_manager.h)
 
