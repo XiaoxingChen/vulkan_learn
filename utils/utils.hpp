@@ -231,7 +231,7 @@ namespace vk
 
     struct SurfaceData
     {
-      SurfaceData( vk::Instance const & instance, std::string const & windowName, vk::Extent2D const & extent );
+      SurfaceData( const vk::PhysicalDevice& physicalDevice, vk::Instance const & instance, std::string const & windowName, vk::Extent2D const & extent );
 
       vk::Extent2D   extent;
       WindowData     window;
@@ -503,6 +503,7 @@ namespace vk
       uint32_t bindingOffset = 0 );
 
 std::shared_ptr<vk::su::PixelsImageGenerator> createImageGenerator(const std::string& filename);
+vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities, const vk::Extent2D& extentIn);
 
 template<typename DType>
 inline typename std::enable_if<std::is_integral<DType>::value , std::string>::type

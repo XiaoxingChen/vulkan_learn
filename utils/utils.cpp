@@ -954,16 +954,19 @@ namespace vk
       imageView = device.createImageView( imageViewCreateInfo );
     }
 
-    SurfaceData::SurfaceData( vk::Instance const & instance,
+    SurfaceData::SurfaceData(const vk::PhysicalDevice& physicalDevice,
+                              vk::Instance const & instance,
                               std::string const &  windowName,
                               vk::Extent2D const & extent_ )
-      : extent( extent_ ), window( vk::su::createWindow( windowName, extent ) )
+      : window( vk::su::createWindow( windowName, extent_ ) )
     {
       VkSurfaceKHR _surface;
       VkResult err = glfwCreateWindowSurface( static_cast<VkInstance>( instance ), window.handle, nullptr, &_surface );
       if ( err != VK_SUCCESS )
         throw std::runtime_error( "Failed to create window!" );
       surface = vk::SurfaceKHR( _surface );
+      auto capabilities = physicalDevice.getSurfaceCapabilitiesKHR(surface);
+      extent = chooseSwapExtent(capabilities, extent_);
     }
 
     SwapChainData::SwapChainData( vk::PhysicalDevice const & physicalDevice,
@@ -979,7 +982,8 @@ namespace vk
       colorFormat                        = surfaceFormat.format;
 
       vk::SurfaceCapabilitiesKHR surfaceCapabilities = physicalDevice.getSurfaceCapabilitiesKHR( surface );
-      VkExtent2D                 swapchainExtent;
+      VkExtent2D                 swapchainExtent = extent;
+#if 0
       if ( surfaceCapabilities.currentExtent.width == std::numeric_limits<uint32_t>::max() )
       {
         // If the surface size is undefined, the size is set to the size of the images requested.
@@ -993,6 +997,8 @@ namespace vk
         // If the surface size is defined, the swap chain size must match
         swapchainExtent = surfaceCapabilities.currentExtent;
       }
+      std::cout << "final swapchain extent: " << swapchainExtent.width << "," <<  swapchainExtent.height << std::endl;
+#endif
       vk::SurfaceTransformFlagBitsKHR preTransform =
         ( surfaceCapabilities.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity )
           ? vk::SurfaceTransformFlagBitsKHR::eIdentity
@@ -1210,6 +1216,7 @@ namespace vk
       (void)glfwCtx;
 
       glfwWindowHint( GLFW_CLIENT_API, GLFW_NO_API );
+      glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
       GLFWwindow * window = glfwCreateWindow( extent.width, extent.height, windowName.c_str(), nullptr, nullptr );
       glfwSetKeyCallback(window, keyCallback);
 
@@ -1267,6 +1274,20 @@ namespace vk
     }
     auto img = std::make_shared<vk::su::PixelsImageGenerator>(vk::Extent2D(texWidth, texHeight), texChannels, pixels);
     return img;
+  }
+
+  vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities, const vk::Extent2D& extentIn)
+  {
+      if (capabilities.currentExtent.width != UINT32_MAX)
+      {
+          return capabilities.currentExtent;
+      }
+      vk::Extent2D actualExtent = extentIn;
+
+      actualExtent.width = clamp( actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width );
+      actualExtent.height = clamp( actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height );
+
+      return actualExtent;
   }
 
   }  // namespace su

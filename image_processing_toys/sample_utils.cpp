@@ -17,7 +17,8 @@ void prepare(SampleContext& context, const char* EngineName, const char* AppName
 
   context.physicalDevice = context.instance.enumeratePhysicalDevices().front();
 
-  context.pSurfaceData = std::make_shared<vk::su::SurfaceData>(context.instance, AppName, vk::Extent2D( 500, 500 ));
+  std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+  context.pSurfaceData = std::make_shared<vk::su::SurfaceData>(context.physicalDevice, context.instance, AppName, vk::Extent2D( 800, 600 ));
 
   std::pair<uint32_t, uint32_t> graphicsAndPresentQueueFamilyIndex =
     vk::su::findGraphicsAndPresentQueueFamilyIndex(context.physicalDevice, context.pSurfaceData->surface );
