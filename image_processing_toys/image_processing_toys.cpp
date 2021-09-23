@@ -41,6 +41,7 @@ int main( int /*argc*/, char ** /*argv*/ )
   initLogger();
   SampleContext context;
   ModelResource modelResource;
+  GraphicsPipelineResource graphicsPipelineResource;
   uint32_t frameCounter = 0;
   auto timePrev = std::chrono::steady_clock::now();
 
@@ -48,6 +49,7 @@ int main( int /*argc*/, char ** /*argv*/ )
   {
 
   prepare(context,EngineName, AppName);
+  prepareRectangle(graphicsPipelineResource, context);
   prepare(modelResource, context);
   LOGI("{}:{}", __FILE__, __LINE__);
 
@@ -62,7 +64,7 @@ int main( int /*argc*/, char ** /*argv*/ )
     vk::su::copyToDevice( context.device, uniformBufferData.deviceMemory, mvpcMatrix );
 
     vk::su::updateDescriptorSets(
-      context.device, context.descriptorSet,
+      context.device, graphicsPipelineResource.descriptorSet,
       {
         { vk::DescriptorType::eUniformBuffer, uniformBufferData.buffer, {} }
       },
@@ -76,7 +78,8 @@ int main( int /*argc*/, char ** /*argv*/ )
                           sizeof( coloredCubeData ) / sizeof( coloredCubeData[0] ) );
 #endif
     FrameResource frame;
-    prepare(frame, context, modelResource);
+    prepare(frame, context);
+    frame.commandBuffers = createCommandBuffers(context, graphicsPipelineResource, modelResource, frame.imageNum);
 
     while (!glfwWindowShouldClose(context.pSurfaceData->window.handle)) {
             glfwPollEvents();
@@ -96,6 +99,7 @@ int main( int /*argc*/, char ** /*argv*/ )
     /* VULKAN_KEY_END */
     tearDown(modelResource, context);
     tearDown(frame, context);
+    tearDown(graphicsPipelineResource, context);
     tearDown(context);
   }
   catch ( vk::SystemError & err )

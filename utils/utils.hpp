@@ -325,6 +325,9 @@ namespace vk
         imageData->clear( device );
         device.destroySampler( sampler );
       }
+      void setImage( vk::Device const &        device,
+                     vk::CommandBuffer const & commandBuffer,
+                     vk::su::BufferData const &    srcData );
 
       template <typename ImageGenerator>
       void setImage( vk::Device const &        device,

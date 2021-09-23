@@ -1170,6 +1170,42 @@ namespace vk
                                                              vk::BorderColor::eFloatOpaqueBlack ) );
     }
 
+    void TextureData::setImage( vk::Device const &        device,
+                     vk::CommandBuffer const & commandBuffer,
+                     vk::su::BufferData const &    srcData )
+    {
+      vk::DeviceSize dataSize = device.getBufferMemoryRequirements( stagingBufferData->buffer ).size;
+      // auto copyRegion = vk::BufferCopy( 0, 0, dataSize );
+      const BufferData* pBufferBeforeImage = nullptr;
+      if ( needsStaging )
+      {
+        commandBuffer.copyBuffer(srcData.buffer, stagingBufferData->buffer, vk::BufferCopy( 0, 0, dataSize ));
+        pBufferBeforeImage = stagingBufferData.get();
+      }else
+      {
+        pBufferBeforeImage = &srcData;
+      }
+      vk::su::setImageLayout( commandBuffer,
+                                  imageData->image,
+                                  imageData->format,
+                                  vk::ImageLayout::eUndefined,
+                                  vk::ImageLayout::eTransferDstOptimal );
+      vk::BufferImageCopy copyRegion( 0,
+                                        extent.width,
+                                        extent.height,
+                                        vk::ImageSubresourceLayers( vk::ImageAspectFlagBits::eColor, 0, 0, 1 ),
+                                        vk::Offset3D( 0, 0, 0 ),
+                                        vk::Extent3D( extent, 1 ) );
+      commandBuffer.copyBufferToImage(
+            pBufferBeforeImage->buffer, imageData->image, vk::ImageLayout::eTransferDstOptimal, copyRegion );                                        
+
+      vk::su::setImageLayout( commandBuffer,
+                                  imageData->image,
+                                  imageData->format,
+                                  vk::ImageLayout::eTransferDstOptimal,
+                                  vk::ImageLayout::eShaderReadOnlyOptimal );
+    }
+
     UUID::UUID( uint8_t const data[VK_UUID_SIZE] )
     {
       memcpy( m_data, data, VK_UUID_SIZE * sizeof( uint8_t ) );

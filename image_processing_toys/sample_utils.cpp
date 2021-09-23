@@ -18,16 +18,18 @@ void prepare(SampleContext& context, const char* EngineName, const char* AppName
   context.physicalDevice = context.instance.enumeratePhysicalDevices().front();
 
   std::cout << __FILE__ << ":" << __LINE__ << std::endl;
-  context.pSurfaceData = std::make_shared<vk::su::SurfaceData>(context.physicalDevice, context.instance, AppName, vk::Extent2D( 800, 600 ));
+  context.pSurfaceData = std::make_shared<vk::su::SurfaceData>(context.physicalDevice, context.instance, AppName, vk::Extent2D( 500, 500 ));
 
   std::pair<uint32_t, uint32_t> graphicsAndPresentQueueFamilyIndex =
     vk::su::findGraphicsAndPresentQueueFamilyIndex(context.physicalDevice, context.pSurfaceData->surface );
   context.graphicsQueueIndex = graphicsAndPresentQueueFamilyIndex.first;
+  context.computeQueueFamilyIndex = vk::su::findQueueFamilyIndex(context.physicalDevice.getQueueFamilyProperties(), vk::QueueFlagBits::eCompute);
   context.device =
     vk::su::createDevice(context.physicalDevice, graphicsAndPresentQueueFamilyIndex.first, vk::su::getDeviceExtensions(context.physicalDevice) );
 
   context.graphicsQueue = context.device.getQueue( graphicsAndPresentQueueFamilyIndex.first, 0 );
   context.presentQueue  = context.device.getQueue( graphicsAndPresentQueueFamilyIndex.second, 0 );
+  context.computeQueue = context.device.getQueue(context.computeQueueFamilyIndex, 0);
 
   context.swapChainData = vk::su::SwapChainData(context.physicalDevice,
                                         context.device,
@@ -45,13 +47,6 @@ void prepare(SampleContext& context, const char* EngineName, const char* AppName
       vk::Format::eD16Unorm,
       context.pSurfaceData->extent);
 
-  context.descriptorSetLayout = vk::su::createDescriptorSetLayout(
-    context.device, {
-      { vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex },
-      { vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment }
-      } );
-  context.pipelineLayout = context.device.createPipelineLayout(
-    vk::PipelineLayoutCreateInfo( vk::PipelineLayoutCreateFlags(), context.descriptorSetLayout ) );
   LOGI("{}:{}", __FILE__, __LINE__);
 
   context.renderPass = vk::su::createRenderPass(
@@ -61,36 +56,8 @@ void prepare(SampleContext& context, const char* EngineName, const char* AppName
 
   LOGI("{}:{}", __FILE__, __LINE__);
 
-  glslang::InitializeProcess();
-
-  context.vertexShaderModule =
-    vk::su::createShaderModule( context.device, vk::ShaderStageFlagBits::eVertex, readShaderSource("imshow.vert") );
-  context.fragmentShaderModule =
-    vk::su::createShaderModule( context.device, vk::ShaderStageFlagBits::eFragment, fragmentShaderText_T_C );
-  glslang::FinalizeProcess();
   context.framebuffers = vk::su::createFramebuffers(
     context.device, context.renderPass, context.swapChainData.imageViews, context.pDepthBuffer->imageView, context.pSurfaceData->extent );
-
-  context.descriptorPool =
-    vk::su::createDescriptorPool( context.device, {
-      { vk::DescriptorType::eUniformBuffer, 1 },
-      { vk::DescriptorType::eCombinedImageSampler, 1 }
-      } );
-  vk::DescriptorSetAllocateInfo descriptorSetAllocateInfo( context.descriptorPool, context.descriptorSetLayout );
-  context.descriptorSet = context.device.allocateDescriptorSets( descriptorSetAllocateInfo ).front();
-
-  context.pipelineCache = context.device.createPipelineCache( vk::PipelineCacheCreateInfo() );
-  context.graphicsPipeline = vk::su::createGraphicsPipeline(
-    context.device,
-    context.pipelineCache,
-    std::make_pair( context.vertexShaderModule, nullptr ),
-    std::make_pair( context.fragmentShaderModule, nullptr ),
-    sizeof( float ) * 6,
-    { { vk::Format::eR32G32B32A32Sfloat, 0 }, { vk::Format::eR32G32Sfloat, 16 } },
-    vk::FrontFace::eCounterClockwise,
-    true,
-    context.pipelineLayout,
-    context.renderPass );
 
   context.commandPool = vk::su::createCommandPool( context.device, context.graphicsQueueIndex );
 }
@@ -98,19 +65,12 @@ void prepare(SampleContext& context, const char* EngineName, const char* AppName
 void tearDown(SampleContext& context)
 {
   context.device.destroyCommandPool( context.commandPool );
-  context.device.destroyPipeline( context.graphicsPipeline );
-  context.device.destroyPipelineCache( context.pipelineCache );
-  context.device.destroyDescriptorPool( context.descriptorPool );
 
   for ( auto framebuffer : context.framebuffers )
   {
     context.device.destroyFramebuffer( framebuffer );
   }
-  context.device.destroyShaderModule( context.fragmentShaderModule );
-  context.device.destroyShaderModule( context.vertexShaderModule );
   context.device.destroyRenderPass( context.renderPass );
-  context.device.destroyPipelineLayout( context.pipelineLayout );
-  context.device.destroyDescriptorSetLayout( context.descriptorSetLayout );
 
   context.pDepthBuffer->clear( context.device );
   context.swapChainData.clear( context.device );
@@ -122,13 +82,92 @@ void tearDown(SampleContext& context)
   context.instance.destroy();
 }
 
+void prepareRectangle(GraphicsPipelineResource& pipeline, const SampleContext& context)
+{
+  pipeline.descriptorSetLayout = vk::su::createDescriptorSetLayout(
+    context.device, {
+      { vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex },
+      { vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment }
+      } );
+  pipeline.layout = context.device.createPipelineLayout(
+    vk::PipelineLayoutCreateInfo( vk::PipelineLayoutCreateFlags(), pipeline.descriptorSetLayout ) );
+
+  glslang::InitializeProcess();
+
+  pipeline.vertexShaderModule =
+    vk::su::createShaderModule( context.device, vk::ShaderStageFlagBits::eVertex, readShaderSource("imshow.vert") );
+  pipeline.fragmentShaderModule =
+    vk::su::createShaderModule( context.device, vk::ShaderStageFlagBits::eFragment, fragmentShaderText_T_C );
+  glslang::FinalizeProcess();
+
+  pipeline.descriptorPool =
+    vk::su::createDescriptorPool( context.device, {
+      { vk::DescriptorType::eUniformBuffer, 1 },
+      { vk::DescriptorType::eCombinedImageSampler, 1 }
+      } );
+  vk::DescriptorSetAllocateInfo descriptorSetAllocateInfo( pipeline.descriptorPool, pipeline.descriptorSetLayout );
+  pipeline.descriptorSet = context.device.allocateDescriptorSets( descriptorSetAllocateInfo ).front();
+
+  pipeline.cache = context.device.createPipelineCache( vk::PipelineCacheCreateInfo() );
+  pipeline.self = vk::su::createGraphicsPipeline(
+    context.device,
+    pipeline.cache,
+    std::make_pair( pipeline.vertexShaderModule, nullptr ),
+    std::make_pair( pipeline.fragmentShaderModule, nullptr ),
+    sizeof( float ) * 6,
+    { { vk::Format::eR32G32B32A32Sfloat, 0 }, { vk::Format::eR32G32Sfloat, 16 } },
+    vk::FrontFace::eCounterClockwise,
+    true,
+    pipeline.layout,
+    context.renderPass );
+}
+
+void tearDown(const GraphicsPipelineResource& pipeline, const SampleContext& context)
+{
+  context.device.destroyPipeline( pipeline.self );
+  context.device.destroyPipelineCache( pipeline.cache );
+  context.device.destroyDescriptorPool( pipeline.descriptorPool );
+  context.device.destroyShaderModule( pipeline.fragmentShaderModule );
+  context.device.destroyShaderModule( pipeline.vertexShaderModule );
+  context.device.destroyPipelineLayout( pipeline.layout );
+  context.device.destroyDescriptorSetLayout( pipeline.descriptorSetLayout );
+}
+
+void prepareCompute(ComputePipelineResource& pipeline, const SampleContext& context)
+{
+  pipeline.descriptorSetLayout = vk::su::createDescriptorSetLayout(
+      context.device, { { vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute } } );
+  pipeline.descriptorPool = vk::su::createDescriptorPool( context.device, { { vk::DescriptorType::eStorageBuffer, 1 } } );
+  pipeline.descriptorSet = std::move(
+      context.device.allocateDescriptorSets( vk::DescriptorSetAllocateInfo( pipeline.descriptorPool, pipeline.descriptorSetLayout ) )
+        .front() );
+  glslang::InitializeProcess();
+  pipeline.computeShaderModule = vk::su::createShaderModule(context.device, vk::ShaderStageFlagBits::eCompute, readShaderSource("test.comp"));
+  glslang::FinalizeProcess();
+  pipeline.layout = context.device.createPipelineLayout(
+      vk::PipelineLayoutCreateInfo( vk::PipelineLayoutCreateFlags(), pipeline.descriptorSetLayout )
+    );
+
+  pipeline.self = vk::su::createComputePipeline(context.device, pipeline.computeShaderModule, pipeline.layout);
+}
+
+void tearDown(const ComputePipelineResource& pipeline, const SampleContext& context)
+{
+  context.device.destroyPipeline( pipeline.self );
+  context.device.destroyPipelineCache( pipeline.cache );
+  context.device.destroyDescriptorPool( pipeline.descriptorPool );
+  context.device.destroyShaderModule( pipeline.computeShaderModule );
+  context.device.destroyPipelineLayout( pipeline.layout );
+  context.device.destroyDescriptorSetLayout( pipeline.descriptorSetLayout );
+}
+
 std::vector<vk::CommandBuffer> createCommandBuffers(
   const SampleContext& context,
-  const vk::CommandPool& commandPool,
+  const GraphicsPipelineResource& pipeline,
   const ModelResource& modelResource,
   size_t num)
 {
-  auto allocateInfo = vk::CommandBufferAllocateInfo( commandPool, vk::CommandBufferLevel::ePrimary, num );
+  auto allocateInfo = vk::CommandBufferAllocateInfo( context.commandPool, vk::CommandBufferLevel::ePrimary, num );
   std::vector<vk::CommandBuffer> commandBuffers = context.device.allocateCommandBuffers( allocateInfo );
   for(size_t i = 0; i < commandBuffers.size(); i++)
   {
@@ -153,8 +192,8 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
                                                  clearValues );
 
     commandBuffer.beginRenderPass( renderPassBeginInfo, vk::SubpassContents::eInline );
-    commandBuffer.bindPipeline( vk::PipelineBindPoint::eGraphics, context.graphicsPipeline );
-    commandBuffer.bindDescriptorSets( vk::PipelineBindPoint::eGraphics, context.pipelineLayout, 0, context.descriptorSet, nullptr );
+    commandBuffer.bindPipeline( vk::PipelineBindPoint::eGraphics, pipeline.self );
+    commandBuffer.bindDescriptorSets( vk::PipelineBindPoint::eGraphics, pipeline.layout, 0, pipeline.descriptorSet, nullptr );
 
     commandBuffer.bindVertexBuffers( 0, modelResource.pVertexBuffer->buffer, { 0 } );
     // commandBuffer.bindIndexBuffer(modelResource.pIndexBuffer->buffer, 0, vk::IndexType::eUint16);
@@ -176,10 +215,10 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
   return commandBuffers;
 }
 
-void prepare(FrameResource& frame, SampleContext& context, ModelResource& modelResource)
+void prepare(FrameResource& frame, SampleContext& context)
 {
   frame.imageNum = context.swapChainData.images.size();
-  frame.commandBuffers = createCommandBuffers(context, context.commandPool, modelResource, frame.imageNum);
+  // frame.commandBuffers = createCommandBuffers(context, pipeline, modelResource, frame.imageNum);
   frame.drawFences.resize(frame.imageNum);
   frame.imageAcquiredSemaphores.resize(frame.imageNum);
   for(size_t i = 0; i < frame.imageNum; i++)

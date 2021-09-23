@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="notes.css" />
+    <title>Document</title>
+</head>
+<body>
+    <h1>Vulkan Synchronization</h1>
+    <h2>Reading Notes on <i>Understanding Vulkan Synchronizaiton</i></h2>
+    <blockquote class="md">
+        When one core writes to memory (to a render target, for example), the updates could still only exist in a cache and not be available or visible to another core ready to work with it. Memory barriers are the tools we can use to ensure that caches are flushed and our memory writes from commands executed before the barrier are available to the pending after-barrier commands. They are also the tool we can use to invalidate caches so that the latest data is visible to the cores that will execute after-barrier commands.
+    </blockquote>
+    <h2>References</h2>
+    <ol>
+        <li><a href="https://www.khronos.org/blog/understanding-vulkan-synchronization">Understanding Vulkan Synchronizaiton, Khronos Group.</a></li>
+        <li><a href="https://developer.arm.com/documentation/dui0538/e/opencl-concepts/the-mali-gpu-memory-model">The Mali GPU memory model, Arm.</a>
+        <li><a href="https://www.seas.upenn.edu/~cis565/LECTURES/Lecture3.pdf">GPU Memory Model Overview, UPENN</a></li></li>
+    </ol>
+</body>
+</html>
