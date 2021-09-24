@@ -1,7 +1,7 @@
 #include "model_loading/sample_utils.h"
 #include "gltf_utils.h"
 #include <stb_image.h>
-#include "utils/assets_manager.h"
+#include "utils/resource_manager.h"
 
 void prepare(SampleContext& context, const char* EngineName, const char* AppName)
 {
@@ -131,7 +131,7 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
   {
     auto & commandBuffer(commandBuffers.at(i));
     commandBuffer.begin( vk::CommandBufferBeginInfo( vk::CommandBufferUsageFlags() ) );
-
+#if 0
     if(modelResource.pTextureGenerator)
     {
       modelResource.pTextureData->setImage(context.device, commandBuffer, *modelResource.pTextureGenerator);
@@ -139,7 +139,7 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
     {
       modelResource.pTextureData->setImage(context.device, commandBuffer, vk::su::CheckerboardImageGenerator());
     }
-
+#endif
     std::array<vk::ClearValue, 2> clearValues;
     clearValues[0].color        = vk::ClearColorValue( std::array<float, 4>( { { 0.2f, 0.2f, 0.2f, 0.2f } } ) );
     clearValues[1].depthStencil = vk::ClearDepthStencilValue( 1.0f, 0 );
@@ -327,6 +327,7 @@ std::shared_ptr<vk::su::PixelsImageGenerator> createImageGenerator(const std::st
 void prepare(ModelResource& modelResource, const SampleContext& context)
 {
   tinygltf::Model model;
+  // std::cout << "WARNING: gltf life cycle problem! Texture was destroyed before copied by command buffer." << std::endl;
   std::string filename(assetsFolder() + "Duck.gltf");
   loadModel(model, filename);
 
@@ -355,7 +356,21 @@ void prepare(ModelResource& modelResource, const SampleContext& context)
     modelResource.pTextureGenerator ? modelResource.pTextureGenerator->extent() : vk::Extent2D(256, 256),
     vk::ImageUsageFlags(),vk::FormatFeatureFlags(),false, true);
 
+
+  vk::su::oneTimeSubmit(context.device, context.commandPool, context.graphicsQueue,
+  [&](vk::CommandBuffer const & commandBuffer)
+  {
+    if(modelResource.pTextureGenerator)
+    {
+      modelResource.pTextureData->setImage(context.device, commandBuffer, *modelResource.pTextureGenerator);
+    }else
+    {
+      modelResource.pTextureData->setImage(context.device, commandBuffer, vk::su::CheckerboardImageGenerator());
+    }
+  });
+
   modelResource.scale = adaptiveModelScale(model, 0, 5);
+
 }
 
 void tearDown(ModelResource& modelResource, const SampleContext& context)

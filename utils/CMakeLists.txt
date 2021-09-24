@@ -40,7 +40,9 @@ add_library(utils
 )
 
 target_link_libraries(utils PUBLIC vulkan)
-target_link_libraries(utils PUBLIC dl)
+if(NOT WINDOWS)
+  target_link_libraries(utils PUBLIC dl)
+endif()
 target_link_libraries(utils PUBLIC spdlog)
 if(ANDROID)
   target_link_libraries(utils PUBLIC android log)

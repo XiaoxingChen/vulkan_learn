@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.1)
 project(vulkan_learn)
 
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(MACOSX TRUE)
+if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  set(MACOSX TRUE)
+elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
+  set(WINDOWS TRUE)
+elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  set(LINUX TRUE)
 endif()
 
 # find_package(glm REQUIRED)

@@ -1,7 +1,6 @@
 #include "image_processing_toys/sample_utils.h"
 #include "gltf_utils.h"
 #include <stb_image.h>
-#include "utils/assets_manager.h"
 #include "utils/resource_manager.h"
 
 void prepare(SampleContext& context, const char* EngineName, const char* AppName)
