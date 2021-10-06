@@ -1,0 +1,25 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+#define WIDTH 1
+#define HEIGHT 32
+#define WORKGROUP_SIZE 32
+layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
+
+layout(std140, binding = 0) buffer buf
+{
+   vec4 imageData[];
+};
+
+void main() {
+
+  /*
+  In order to fit the work into workgroups, some unnecessary threads are launched.
+  We terminate those threads here.
+  */
+  if(gl_GlobalInvocationID.y >= HEIGHT /4)
+    return;
+  highp uint idx = gl_GlobalInvocationID.y; 
+  
+  imageData[idx] = 2.f * imageData[idx];
+}

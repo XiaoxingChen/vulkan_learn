@@ -30,7 +30,9 @@
 #include <iomanip>
 #include <numeric>
 #include <stb_image.h>
+#ifndef __ANDROID__
 #include "event_manager.h"
+#endif
 
 #if ( VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1 )
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
@@ -526,6 +528,17 @@ namespace vk
       return static_cast<uint32_t>( std::distance( queueFamilyProperties.begin(), graphicsQueueFamilyProperty ) );
     }
 
+    std::vector<uint32_t> findQueueFamilyIndices( std::vector<vk::QueueFamilyProperties> const & queueFamilyProperties, vk::QueueFlagBits targetFlags )
+    {
+      std::vector<uint32_t> indices;
+      for(uint32_t i = 0; i < queueFamilyProperties.size(); i++)
+      {
+        if(queueFamilyProperties.at(i).queueFlags & targetFlags)
+          indices.push_back(i);
+      }
+      return indices;
+    }
+
     uint32_t findGraphicsQueueFamilyIndex( std::vector<vk::QueueFamilyProperties> const & queueFamilyProperties )
     {
       // get the first index into queueFamiliyProperties which supports graphics
@@ -631,7 +644,7 @@ namespace vk
       extensions.push_back( VK_EXT_ACQUIRE_XLIB_DISPLAY_EXTENSION_NAME );
 #endif
       extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-#if 1
+#ifndef __ANDROID__
       glfwInit();
       uint32_t     glfwExtensionCount = 0;
       const char** glfwExtensions;
@@ -960,6 +973,7 @@ namespace vk
                               vk::Extent2D const & extent_ )
       : window( vk::su::createWindow( windowName, extent_ ) )
     {
+#ifndef __ANDROID__
       VkSurfaceKHR _surface;
       VkResult err = glfwCreateWindowSurface( static_cast<VkInstance>( instance ), window.handle, nullptr, &_surface );
       if ( err != VK_SUCCESS )
@@ -967,6 +981,7 @@ namespace vk
       surface = vk::SurfaceKHR( _surface );
       auto capabilities = physicalDevice.getSurfaceCapabilitiesKHR(surface);
       extent = chooseSwapExtent(capabilities, extent_);
+#endif
     }
 
     SwapChainData::SwapChainData( vk::PhysicalDevice const & physicalDevice,
@@ -1197,7 +1212,7 @@ namespace vk
                                         vk::Offset3D( 0, 0, 0 ),
                                         vk::Extent3D( extent, 1 ) );
       commandBuffer.copyBufferToImage(
-            pBufferBeforeImage->buffer, imageData->image, vk::ImageLayout::eTransferDstOptimal, copyRegion );                                        
+            pBufferBeforeImage->buffer, imageData->image, vk::ImageLayout::eTransferDstOptimal, copyRegion );
 
       vk::su::setImageLayout( commandBuffer,
                                   imageData->image,
@@ -1210,7 +1225,7 @@ namespace vk
     {
       memcpy( m_data, data, VK_UUID_SIZE * sizeof( uint8_t ) );
     }
-
+#ifndef __ANDROID__
     WindowData::WindowData( GLFWwindow * wnd, std::string const & name, vk::Extent2D const & extent )
       : handle{ wnd }, name{ name }, extent{ extent }
     {}
@@ -1226,9 +1241,10 @@ namespace vk
     {
       glfwDestroyWindow( handle );
     }
-
+#endif
     WindowData createWindow( std::string const & windowName, vk::Extent2D const & extent )
     {
+#ifndef __ANDROID__
       struct glfwContext
       {
         glfwContext()
@@ -1257,6 +1273,9 @@ namespace vk
       glfwSetKeyCallback(window, keyCallback);
 
       return WindowData( window, windowName, extent );
+#else
+      return WindowData();
+#endif
     }
 
     vk::DebugUtilsMessengerCreateInfoEXT makeDebugUtilsMessengerCreateInfoEXT()

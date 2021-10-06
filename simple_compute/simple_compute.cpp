@@ -28,7 +28,11 @@ struct ComputeSampleContext
 void prepare(ComputeSampleContext& context)
 {
     LOGI("{}:{}", __FILE__, __LINE__);
+    #ifdef __ANDROID__
+    context.instance = vk::su::createInstance( "simple_compute", "xx_engine", {}, vk::su::getInstanceExtensions() );
+    #else
     context.instance = vk::su::createInstance( "simple_compute", "xx_engine", {"VK_LAYER_KHRONOS_validation"}, vk::su::getInstanceExtensions() );
+    #endif
     LOGI("{}:{}", __FILE__, __LINE__);
 #if !defined( NDEBUG )
     LOGI("{}:{}", __FILE__, __LINE__);

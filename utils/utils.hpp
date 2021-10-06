@@ -17,8 +17,10 @@
 
 #include "vulkan/vulkan.hpp"
 
+#ifndef __ANDROID__
 // #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+#endif
 #include <iostream>
 #include <iomanip>
 #include <map>
@@ -97,6 +99,7 @@ namespace vk
 
     struct WindowData
     {
+#ifndef __ANDROID__
       WindowData( GLFWwindow * wnd, std::string const & name, vk::Extent2D const & extent );
       WindowData( const WindowData & ) = delete;
       WindowData( WindowData && other );
@@ -105,6 +108,7 @@ namespace vk
       GLFWwindow * handle;
       std::string  name;
       vk::Extent2D extent;
+#endif
     };
 
     WindowData createWindow( std::string const & windowName, vk::Extent2D const & extent );
@@ -459,6 +463,7 @@ namespace vk
                                           VkDebugUtilsMessengerCallbackDataEXT const * pCallbackData,
                                           void * /*pUserData*/ );
     uint32_t findQueueFamilyIndex( std::vector<vk::QueueFamilyProperties> const & queueFamilyProperties, vk::QueueFlagBits targetFlags=vk::QueueFlagBits::eGraphics);
+    std::vector<uint32_t> findQueueFamilyIndices( std::vector<vk::QueueFamilyProperties> const & queueFamilyProperties, vk::QueueFlagBits targetFlags );
     uint32_t findGraphicsQueueFamilyIndex( std::vector<vk::QueueFamilyProperties> const & queueFamilyProperties );
     std::pair<uint32_t, uint32_t> findGraphicsAndPresentQueueFamilyIndex( vk::PhysicalDevice     physicalDevice,
                                                                           vk::SurfaceKHR const & surface );

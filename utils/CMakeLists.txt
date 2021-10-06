@@ -28,8 +28,13 @@ set(SOURCES
   shaders.cpp
   utils.cpp
   gltf_utils.cpp
-  event_manager.cpp
+  # event_manager.cpp
 )
+
+if(NOT ANDROID)
+LIST(APPEND SOURCES event_manager.cpp)
+endif(NOT ANDROID)
+
 
 source_group(headers FILES ${HEADERS})
 source_group(sources FILES ${SOURCES})
@@ -53,7 +58,9 @@ else()
   target_link_libraries(utils PUBLIC glm)
 endif()
 
+if(NOT ANDROID)
 target_link_libraries(utils PUBLIC glfw)
+endif()
 target_link_libraries(utils PUBLIC glslang)
 target_link_libraries(utils PUBLIC glslang-default-resource-limits)
 target_link_libraries(utils PUBLIC SPIRV)
