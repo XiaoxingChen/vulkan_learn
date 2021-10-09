@@ -5,6 +5,7 @@
 #include "shaders.hpp"
 #include "resource_manager.h"
 #include "synchronization/sample_utils.h"
+#include <glm/glm.hpp>
 #include <iostream>
 
 void prepare(ComputeSampleContext& context)
@@ -71,8 +72,14 @@ void prepare(ComputeSampleContext& context)
 void prepareUnaryInplaceCompute(ComputePipelineResource& pipeline, const ComputeSampleContext& context, const std::string& shaderName)
 {
   pipeline.descriptorSetLayout = vk::su::createDescriptorSetLayout(
-      context.device, { { vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute } } );
-  pipeline.descriptorPool = vk::su::createDescriptorPool( context.device, { { vk::DescriptorType::eStorageBuffer, 1 } } );
+      context.device, { 
+        { vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute },
+        { vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eCompute }
+        } );
+  pipeline.descriptorPool = vk::su::createDescriptorPool( context.device, { 
+    { vk::DescriptorType::eStorageBuffer, 1 },
+    { vk::DescriptorType::eUniformBuffer, 1 } 
+    } );
   pipeline.descriptorSet = std::move(
       context.device.allocateDescriptorSets( vk::DescriptorSetAllocateInfo( pipeline.descriptorPool, pipeline.descriptorSetLayout ) )
         .front() );
@@ -125,16 +132,26 @@ int main(int argc, char const *argv[])
 
     vk::su::BufferData storageBufferData(
       context.physicalDevice, context.device, storageBufferSize, vk::BufferUsageFlagBits::eStorageBuffer );
+
+    vk::su::BufferData uniformBufferData = vk::su::BufferData(
+     context.physicalDevice, context.device, sizeof( glm::ivec4 ), vk::BufferUsageFlagBits::eUniformBuffer );
+    glm::ivec4 imgSize(WIDTH, HEIGHT, 0, 0);
+    uniformBufferData.upload(context.device, imgSize);
     LOGI("{}:{}", __FILE__, __LINE__);
 
-    vk::DescriptorBufferInfo descriptorBufferInfo( storageBufferData.buffer, 0, storageBufferSize);
-    context.device.updateDescriptorSets(
-      vk::WriteDescriptorSet( initPipeline.descriptorSet, 0, 0, vk::DescriptorType::eStorageBuffer, {}, descriptorBufferInfo ),
-      {} );
-
-    context.device.updateDescriptorSets(
-      vk::WriteDescriptorSet( timesPipeline.descriptorSet, 0, 0, vk::DescriptorType::eStorageBuffer, {}, descriptorBufferInfo ),
-      {} );
+    std::vector<std::tuple<vk::DescriptorType, vk::Buffer const &, vk::BufferView const &>> descriptorBufferData{
+      {vk::DescriptorType::eStorageBuffer, storageBufferData.buffer, {}},
+      {vk::DescriptorType::eUniformBuffer, uniformBufferData.buffer, {}}
+    };
+    vk::su::updateDescriptorSets(
+      context.device, 
+      initPipeline.descriptorSet, 
+      descriptorBufferData, {});
+    vk::su::updateDescriptorSets(
+      context.device, 
+      timesPipeline.descriptorSet, 
+      descriptorBufferData, {});
+   
 
     LOGI("{}:{}", __FILE__, __LINE__);
     #if 0
@@ -174,15 +191,31 @@ int main(int argc, char const *argv[])
       commandBuffer.dispatch((uint32_t)ceil(WIDTH / float(WORKGROUP_SIZE)), (uint32_t)ceil(HEIGHT / float(WORKGROUP_SIZE)), 1);
     });
     #endif
-    syncBetweenQueues( context, initPipeline, timesPipeline);
+    // syncBetweenQueues( context, initPipeline, timesPipeline);
+    syncByExecutionBarrier( context, initPipeline, timesPipeline);
 
     auto computeResult = storageBufferData.download<float>(context.device, storageBufferSize);
-    for(const auto & val : computeResult)
+    size_t errorCnt = 0;
+    for(size_t i = 0; i < computeResult.size(); i++)
     {
-      std::cout << val << " ";
-    } std::cout << "\n";
+      if(i < 32) std::cout << computeResult.at(i) << " ";
+      if(computeResult.at(i) != 2 * i)
+      {
+        std::cout << "error! Expect: " << 2 * i << ", get: " << computeResult.at(i) << std::endl;
+        if(errorCnt++ > 10)
+          break;
+      }
+    }std::cout << "\n";
+
+    std::cout << "Total error count: " << errorCnt << std::endl;
+    
+    // for(const auto & val : computeResult)
+    // {
+    //   std::cout << val << " ";
+    // } std::cout << "\n";
     context.device.waitIdle();
     storageBufferData.clear(context.device);
+    uniformBufferData.clear(context.device);
     // context.device.destroyFence(fence);
 
     tearDown(initPipeline, context);

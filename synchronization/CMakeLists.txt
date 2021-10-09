@@ -27,6 +27,7 @@ configure_file (
 add_executable(${TARGET_NAME}
     ${TARGET_NAME}.cpp
     sync_between_queues.cpp
+    sync_within_a_queue.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/resource_manager.cpp)
 
 target_link_libraries(${TARGET_NAME} utils)

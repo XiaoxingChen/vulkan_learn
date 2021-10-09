@@ -3,7 +3,7 @@
 
 #include "utils.hpp"
 #include "vulkan/vulkan.hpp"
-#include <math.h> 
+#include <math.h>
 #include <iostream>
 
 struct ComputeSampleContext
@@ -30,9 +30,10 @@ struct ComputePipelineResource
 };
 
 const int WIDTH = 1; // Size of rendered mandelbrot set.
-const int HEIGHT = 32; // Size of renderered mandelbrot set.
+const int HEIGHT = 4194304 / 4; // Size of renderered mandelbrot set.
 const int WORKGROUP_SIZE = 32; // Workgroup size in compute shader.
 
 void syncBetweenQueues(const ComputeSampleContext& context, const ComputePipelineResource& initPipeline, const ComputePipelineResource& timePipeline);
+void syncByExecutionBarrier(const ComputeSampleContext& context, const ComputePipelineResource& initPipeline, const ComputePipelineResource& timePipeline);
 
 #endif // _SAMPLE_UTILS_H

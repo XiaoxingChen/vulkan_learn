@@ -10,6 +10,10 @@ layout(std140, binding = 0) buffer buf
 {
    vec4 imageData[];
 };
+layout (std140, binding = 1) uniform InputBuffer
+{
+  ivec4 imgSize;
+} uniformBuffer;
 
 void main() {
 
@@ -17,7 +21,9 @@ void main() {
   In order to fit the work into workgroups, some unnecessary threads are launched.
   We terminate those threads here.
   */
-  if(gl_GlobalInvocationID.y >= HEIGHT /4)
+  if(gl_GlobalInvocationID.x >= uniformBuffer.imgSize.x/4 && gl_GlobalInvocationID.x != 1)
+    return;
+  if(gl_GlobalInvocationID.y >= uniformBuffer.imgSize.y/4 && gl_GlobalInvocationID.y != 1)
     return;
   highp uint idx = gl_GlobalInvocationID.y; 
   
