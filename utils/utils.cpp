@@ -1147,7 +1147,7 @@ namespace vk
       {
         assert( ( formatProperties.optimalTilingFeatures & formatFeatureFlags ) == formatFeatureFlags );
         stagingBufferData = std::unique_ptr<BufferData>( new BufferData(
-          physicalDevice, device, extent.width * extent.height * 4, vk::BufferUsageFlagBits::eTransferSrc ) );
+          physicalDevice, device, extent.width * extent.height * 4, vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst ) );
         imageTiling       = vk::ImageTiling::eOptimal;
         usageFlags |= vk::ImageUsageFlagBits::eTransferDst;
         initialLayout = vk::ImageLayout::eUndefined;

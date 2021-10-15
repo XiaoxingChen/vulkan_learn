@@ -85,7 +85,6 @@ void prepareRectangle(GraphicsPipelineResource& pipeline, const SampleContext& c
 {
   pipeline.descriptorSetLayout = vk::su::createDescriptorSetLayout(
     context.device, {
-      { vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex },
       { vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment }
       } );
   pipeline.layout = context.device.createPipelineLayout(
@@ -96,12 +95,11 @@ void prepareRectangle(GraphicsPipelineResource& pipeline, const SampleContext& c
   pipeline.vertexShaderModule =
     vk::su::createShaderModule( context.device, vk::ShaderStageFlagBits::eVertex, readShaderSource("imshow.vert") );
   pipeline.fragmentShaderModule =
-    vk::su::createShaderModule( context.device, vk::ShaderStageFlagBits::eFragment, fragmentShaderText_T_C );
+    vk::su::createShaderModule( context.device, vk::ShaderStageFlagBits::eFragment, readShaderSource("imshow.frag") );
   glslang::FinalizeProcess();
 
   pipeline.descriptorPool =
     vk::su::createDescriptorPool( context.device, {
-      { vk::DescriptorType::eUniformBuffer, 1 },
       { vk::DescriptorType::eCombinedImageSampler, 1 }
       } );
   vk::DescriptorSetAllocateInfo descriptorSetAllocateInfo( pipeline.descriptorPool, pipeline.descriptorSetLayout );
@@ -135,13 +133,21 @@ void tearDown(const GraphicsPipelineResource& pipeline, const SampleContext& con
 void prepareCompute(ComputePipelineResource& pipeline, const SampleContext& context)
 {
   pipeline.descriptorSetLayout = vk::su::createDescriptorSetLayout(
-      context.device, { { vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute } } );
-  pipeline.descriptorPool = vk::su::createDescriptorPool( context.device, { { vk::DescriptorType::eStorageBuffer, 1 } } );
+      context.device, { 
+        { vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute },
+        { vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eCompute } } );
+
+  pipeline.descriptorPool = vk::su::createDescriptorPool( context.device, { 
+    { vk::DescriptorType::eStorageBuffer, 1 },
+    { vk::DescriptorType::eUniformBuffer, 1 } } );
   pipeline.descriptorSet = std::move(
       context.device.allocateDescriptorSets( vk::DescriptorSetAllocateInfo( pipeline.descriptorPool, pipeline.descriptorSetLayout ) )
         .front() );
   glslang::InitializeProcess();
-  pipeline.computeShaderModule = vk::su::createShaderModule(context.device, vk::ShaderStageFlagBits::eCompute, readShaderSource("test.comp"));
+  pipeline.computeShaderModule = vk::su::createShaderModule(context.device, vk::ShaderStageFlagBits::eCompute, 
+    // readShaderSource("show_coordination.comp")
+    readShaderSource("wave.comp")
+    );
   glslang::FinalizeProcess();
   pipeline.layout = context.device.createPipelineLayout(
       vk::PipelineLayoutCreateInfo( vk::PipelineLayoutCreateFlags(), pipeline.descriptorSetLayout )
@@ -160,6 +166,29 @@ void tearDown(const ComputePipelineResource& pipeline, const SampleContext& cont
   context.device.destroyDescriptorSetLayout( pipeline.descriptorSetLayout );
 }
 
+vk::CommandBuffer createCommandBuffer(
+  const SampleContext& context,
+  const ComputePipelineResource& pipeline,
+  const ModelResource& modelResource)
+{
+  vk::CommandBuffer commandBuffer = std::move( context.device.allocateCommandBuffers( vk::CommandBufferAllocateInfo(
+                                                           context.commandPool, vk::CommandBufferLevel::ePrimary, 1 ) )
+                                                         .front() );
+    // std::cout << "shader: \n" << readShaderSource("test.comp") << std::endl;
+
+    
+    // command buffer
+    commandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlags()));
+    commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline.self);
+    commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeline.layout, 0, pipeline.descriptorSet, nullptr);
+    commandBuffer.dispatch(
+      (uint32_t)ceil(modelResource.pTextureData->extent.width / float(WORKGROUP_SIZE)), 
+      (uint32_t)ceil(modelResource.pTextureData->extent.height / float(WORKGROUP_SIZE)), 1);
+    // commandBuffer.dispatch(2,2, 1);
+    commandBuffer.end();
+    return commandBuffer;
+}
+
 std::vector<vk::CommandBuffer> createCommandBuffers(
   const SampleContext& context,
   const GraphicsPipelineResource& pipeline,
@@ -172,14 +201,6 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
   {
     auto & commandBuffer(commandBuffers.at(i));
     commandBuffer.begin( vk::CommandBufferBeginInfo( vk::CommandBufferUsageFlags() ) );
-
-    if(modelResource.pTextureGenerator)
-    {
-      modelResource.pTextureData->setImage(context.device, commandBuffer, *modelResource.pTextureGenerator);
-    }else
-    {
-      modelResource.pTextureData->setImage(context.device, commandBuffer, vk::su::CheckerboardImageGenerator());
-    }
 
     std::array<vk::ClearValue, 2> clearValues;
     clearValues[0].color        = vk::ClearColorValue( std::array<float, 4>( { { 0.2f, 0.2f, 0.2f, 0.2f } } ) );
@@ -361,13 +382,25 @@ void prepare(ModelResource& modelResource, const SampleContext& context)
   // modelResource.pIndexBuffer = createIndexBuffer(context, indices);
   modelResource.pVertexBuffer = createTexturedVertexBuffer(context);
 
-  modelResource.pTextureGenerator = vk::su::createImageGenerator(assetsFolder() + "damaged_helmet.png");
+  // modelResource.pTextureGenerator = vk::su::createImageGenerator(assetsFolder() + "damaged_helmet.png");
 
   modelResource.pTextureData = std::make_shared<vk::su::TextureData>(
     context.physicalDevice,
     context.device,
-    modelResource.pTextureGenerator ? modelResource.pTextureGenerator->extent() : vk::Extent2D(256, 256),
+    modelResource.pTextureGenerator ? modelResource.pTextureGenerator->extent() : vk::Extent2D(300, 300),
     vk::ImageUsageFlags(),vk::FormatFeatureFlags(),false, true);
+
+  vk::su::oneTimeSubmit(context.device, context.commandPool, context.graphicsQueue,
+  [&](vk::CommandBuffer const & commandBuffer)
+  {
+    if(modelResource.pTextureGenerator)
+    {
+      modelResource.pTextureData->setImage(context.device, commandBuffer, *modelResource.pTextureGenerator);
+    }else
+    {
+      modelResource.pTextureData->setImage(context.device, commandBuffer, vk::su::CheckerboardImageGenerator());
+    }
+  });
 
   modelResource.scale = 1.f;
 }
@@ -400,4 +433,29 @@ void tearDown(ModelResource& modelResource, const SampleContext& context)
     modelResource.pTextureData.reset();
     LOGI("{}:{}", __FILE__, __LINE__);
   }
+}
+  
+void BufferList::prepare(SampleContext& context, const ModelResource& modelResource)
+{
+  size_t computeOutputSize = sizeof(uint32_t) * modelResource.pTextureData->extent.height * modelResource.pTextureData->extent.width;
+  pComputeOutput = std::make_shared<vk::su::BufferData>(
+      context.physicalDevice, context.device, computeOutputSize, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc );
+  pComputeUniform = std::make_shared<vk::su::BufferData>(
+      context.physicalDevice, context.device, sizeof(ComputeUniformInfo), vk::BufferUsageFlagBits::eUniformBuffer );
+}
+
+void BufferList::tearDown(SampleContext& context)
+{
+  if(pComputeOutput)
+  {
+    pComputeOutput->clear(context.device);
+    pComputeOutput.reset();
+  }
+  if(pComputeUniform)
+  {
+    pComputeUniform->clear(context.device);
+    pComputeUniform.reset();
+  }
+  
+  
 }

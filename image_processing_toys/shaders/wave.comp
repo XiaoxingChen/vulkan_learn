@@ -1,0 +1,46 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+#define WORKGROUP_SIZE 32
+layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
+
+layout(std140, binding = 0) buffer buf
+{
+   uvec4 imageData[];
+};
+layout (std140, binding = 1) uniform InputBuffer
+{
+  ivec4 imgSize;
+  float timestamp;
+} uniformBuffer;
+
+void main() {
+
+  /*
+  In order to fit the work into workgroups, some unnecessary threads are launched.
+  We terminate those threads here.
+  */
+  if(gl_GlobalInvocationID.x >= uniformBuffer.imgSize.x/4)
+    return;
+  if(gl_GlobalInvocationID.y >= uniformBuffer.imgSize.y)
+    return;
+  uint stride = uniformBuffer.imgSize.x/4;
+  
+  uint index = stride * gl_GlobalInvocationID.y + gl_GlobalInvocationID.x;
+  
+  imageData[index] = uvec4(0xff0000ff);
+  vec4 x = vec4(0,1,2,3);
+  x += 4. * gl_GlobalInvocationID.x;
+  vec4 y = vec4(gl_GlobalInvocationID.y);
+  vec4 r = sqrt(x*x + y*y);
+  uvec4 redness = uvec4(x * 255. / uniformBuffer.imgSize.x);
+  uvec4 greeness = uvec4(y * 255. / uniformBuffer.imgSize.y);
+  uvec4 blueness = uvec4((sin(0.1 * r - uniformBuffer.timestamp) + 1.) * 127);
+
+  imageData[index] &= 0xff000000;
+  // imageData[index] |= redness;
+  // imageData[index] |= (greeness << 8);
+  imageData[index] |= (blueness << 16);
+  
+  // imageData[idx] = 2.f * imageData[idx];
+}

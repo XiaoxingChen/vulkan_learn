@@ -10,6 +10,7 @@
 #include "vulkan/vulkan.hpp"
 #include "logging.h"
 
+const uint32_t WORKGROUP_SIZE = 32;
 struct GraphicsPipelineResource
 {
   vk::Pipeline self;
@@ -73,12 +74,31 @@ struct ModelResource
   float scale = 1.f;
 };
 
+struct BufferList
+{
+  std::shared_ptr<vk::su::BufferData> pComputeOutput = nullptr;
+  std::shared_ptr<vk::su::BufferData> pComputeUniform = nullptr;
+  void prepare(SampleContext& context, const ModelResource& modelResource);
+  void tearDown(SampleContext& context);
+};
+
+struct ComputeUniformInfo{
+  glm::ivec4 imgSize;
+  float timestamp;
+};
+
 void prepare(SampleContext& context, const char* EngineName, const char* AppName);
 void tearDown(SampleContext& context);
 std::vector<vk::CommandBuffer> createCommandBuffers(
   const SampleContext& context,
   const GraphicsPipelineResource& pipe,
   const ModelResource& modelResource);
+  
+vk::CommandBuffer createCommandBuffer(
+  const SampleContext& context,
+  const ComputePipelineResource& pipeline,
+  const ModelResource& modelResource);
+
 void prepare(FrameResource& frame, SampleContext& context);
 void tearDown(FrameResource& frame, SampleContext& context);
 vk::Result draw(SampleContext& context, FrameResource& frame);

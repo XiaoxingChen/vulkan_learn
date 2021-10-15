@@ -32,7 +32,7 @@
 
 #define DEPTH_BUFFER_DATA 0
 
-static char const * AppName    = "load_model";
+static char const * AppName    = "img_proc_toys";
 static char const * EngineName = "Vulkan.hpp";
 
 
@@ -42,45 +42,46 @@ int main( int /*argc*/, char ** /*argv*/ )
   SampleContext context;
   ModelResource modelResource;
   GraphicsPipelineResource graphicsPipelineResource;
+  ComputePipelineResource computePipelineResource;
+  BufferList bufferList;
   uint32_t frameCounter = 0;
   auto timePrev = std::chrono::steady_clock::now();
-
+  ComputeUniformInfo uniformInfo;
   try
   {
 
   prepare(context,EngineName, AppName);
   prepareRectangle(graphicsPipelineResource, context);
+  prepareCompute(computePipelineResource, context);
   prepare(modelResource, context);
+  bufferList.prepare(context, modelResource);
+  uniformInfo.imgSize = glm::ivec4(modelResource.pTextureData->extent.width, modelResource.pTextureData->extent.height, 0, 0);
+  uniformInfo.timestamp = 0;
+  
   LOGI("{}:{}", __FILE__, __LINE__);
 
 
     /* VULKAN_KEY_START */
-    vk::su::BufferData uniformBufferData = vk::su::BufferData(
-     context.physicalDevice, context.device, sizeof( glm::mat4x4 ), vk::BufferUsageFlagBits::eUniformBuffer );
-     float angle = 0;
-    glm::mat4x4 camPose(1.);// = glm::mat4_cast(glm::angleAxis(angle, glm::vec3(1,0,0)));
-    glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent, angle, modelResource.scale, camPose);
-    std::cout << "mvpcMatrix: " << glm::to_string(mvpcMatrix) << std::endl;
-    vk::su::copyToDevice( context.device, uniformBufferData.deviceMemory, mvpcMatrix );
+
+    vk::su::updateDescriptorSets(
+      context.device, computePipelineResource.descriptorSet,
+      {
+        { vk::DescriptorType::eStorageBuffer, bufferList.pComputeOutput->buffer, {} },
+        { vk::DescriptorType::eUniformBuffer, bufferList.pComputeUniform->buffer, {} }
+      }, {});
 
     vk::su::updateDescriptorSets(
       context.device, graphicsPipelineResource.descriptorSet,
-      {
-        { vk::DescriptorType::eUniformBuffer, uniformBufferData.buffer, {} }
-      },
+      {},
       *modelResource.pTextureData );
-#if 0
-    modelResource.pVertexBuffer = std::make_shared<vk::su::BufferData>(
-     context.physicalDevice, context.device, sizeof( coloredCubeData ), vk::BufferUsageFlagBits::eVertexBuffer );
-    vk::su::copyToDevice( context.device,
-                          modelResource.pVertexBuffer->deviceMemory,
-                          coloredCubeData,
-                          sizeof( coloredCubeData ) / sizeof( coloredCubeData[0] ) );
-#endif
+
     FrameResource frame;
     prepare(frame, context);
+    auto computeCommandBuffer = createCommandBuffer(context, computePipelineResource, modelResource);
+
     frame.commandBuffers = createCommandBuffers(context, graphicsPipelineResource, modelResource);
 
+#if 1
     while (!glfwWindowShouldClose(context.pSurfaceData->window.handle)) {
             glfwPollEvents();
 
@@ -88,22 +89,37 @@ int main( int /*argc*/, char ** /*argv*/ )
 
       vk::su::eventList().clear();
 
-      glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent , angle, modelResource.scale, glm::affineInverse(camPose));
-      uniformBufferData.upload(context.device, mvpcMatrix);
+      {
+        uniformInfo.timestamp += 1e-1;
+        bufferList.pComputeUniform->upload(context.device, uniformInfo);
+        auto submitInfo = vk::SubmitInfo(nullptr, nullptr, computeCommandBuffer);
+        auto fence = context.device.createFence(vk::FenceCreateInfo());
+        context.computeQueue.submit(submitInfo, fence);
+        while ( vk::Result::eTimeout == context.device.waitForFences( fence, VK_TRUE, vk::su::FenceTimeout ) );
+        context.device.destroyFence(fence);
+      }
+      vk::su::oneTimeSubmit(context.device, context.commandPool, context.graphicsQueue,
+      [&](vk::CommandBuffer const & commandBuffer)
+      {
+          modelResource.pTextureData->setImage(context.device, commandBuffer, *bufferList.pComputeOutput);
+      });
+
       auto result = draw(context, frame);
       if(result == vk::Result::eSuboptimalKHR)
       {
         handleSurfaceChange(context, modelResource, frame, graphicsPipelineResource);
       }
+      
     }
-
+#endif
     context.device.waitIdle();
-    uniformBufferData.clear( context.device );
+    bufferList.tearDown(context);
 
     /* VULKAN_KEY_END */
     tearDown(modelResource, context);
     tearDown(frame, context);
     tearDown(graphicsPipelineResource, context);
+    tearDown(computePipelineResource, context);
     tearDown(context);
   }
   catch ( vk::SystemError & err )
