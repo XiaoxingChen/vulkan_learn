@@ -105,9 +105,9 @@ void tearDown(SampleContext& context)
 std::vector<vk::CommandBuffer> createCommandBuffers(
   const SampleContext& context,
   const vk::CommandPool& commandPool,
-  const vk::su::BufferData& vertexBufferData,
-  size_t num)
+  const vk::su::BufferData& vertexBufferData)
 {
+  size_t num = context.swapChainData.imageViews.size();
   auto allocateInfo = vk::CommandBufferAllocateInfo( commandPool, vk::CommandBufferLevel::ePrimary, num );
   std::vector<vk::CommandBuffer> commandBuffers = context.device.allocateCommandBuffers( allocateInfo );
   for(size_t i = 0; i < commandBuffers.size(); i++)
@@ -148,13 +148,13 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
 void prepare(FrameResource& frame, SampleContext& context, vk::su::BufferData& vertexBufferData)
 {
   frame.imageNum = context.swapChainData.images.size();
-  frame.commandBuffers = createCommandBuffers(context, context.commandPool, vertexBufferData, frame.imageNum);
+  frame.commandBuffers = createCommandBuffers(context, context.commandPool, vertexBufferData);
   frame.drawFences.resize(frame.imageNum);
-  frame.imageAcquiredSemaphores.resize(frame.imageNum);
+  frame.recycledSemaphores.resize(frame.imageNum);
   for(size_t i = 0; i < frame.imageNum; i++)
   {
     frame.drawFences.at(i) = context.device.createFence( vk::FenceCreateInfo() );
-    frame.imageAcquiredSemaphores.at(i) = context.device.createSemaphore( vk::SemaphoreCreateInfo() );
+    frame.recycledSemaphores.at(i) = context.device.createSemaphore( vk::SemaphoreCreateInfo() );
   }
 }
 
@@ -163,36 +163,84 @@ void tearDown(FrameResource& frame, SampleContext& context)
     for(size_t i = 0; i < frame.imageNum; i++)
     {
       context.device.destroyFence(frame.drawFences.at(i));
-      context.device.destroySemaphore( frame.imageAcquiredSemaphores.at(i));
+      context.device.destroySemaphore( frame.recycledSemaphores.at(i));
     }
 }
-void draw(SampleContext& context, FrameResource& frame)
+
+void handleSurfaceChange(SampleContext& context, const vk::su::BufferData& vertexBufferData, FrameResource& frame)
 {
-  auto & commandBuffer = frame.commandBuffers.front();
-  auto & drawFence = frame.drawFences.front();
-  auto & imageAcquiredSemaphore = frame.imageAcquiredSemaphores.front();
+  auto surfaceCapabilities = context.physicalDevice.getSurfaceCapabilitiesKHR(context.pSurfaceData->surface);
+  const auto & newExtent = surfaceCapabilities.currentExtent;
+  if (newExtent.width == 0xFFFFFFFF) return;
+  if(newExtent.width == context.pSurfaceData->extent.width &&
+    newExtent.height == context.pSurfaceData->extent.height) return;
+
+  context.device.waitIdle();
+  for ( auto framebuffer : context.framebuffers )
+  {
+    context.device.destroyFramebuffer( framebuffer );
+  }
+  context.swapChainData.clear( context.device );
+  context.pSurfaceData->extent = newExtent;
+  context.swapChainData = vk::su::SwapChainData(context.physicalDevice,
+                                        context.device,
+                                        context.pSurfaceData->surface,
+                                        context.pSurfaceData->extent,
+                                        vk::ImageUsageFlagBits::eColorAttachment |
+                                          vk::ImageUsageFlagBits::eTransferSrc,
+                                        {},
+                                        context.graphicsQueueIndex,
+                                        context.graphicsQueueIndex);
+  context.framebuffers.clear();                                        
+  context.framebuffers = vk::su::createFramebuffers(
+    context.device, context.renderPass, context.swapChainData.imageViews, nullptr, context.pSurfaceData->extent );
+  frame.commandBuffers = createCommandBuffers(context, context.commandPool, vertexBufferData);
+}
+
+vk::Result draw(SampleContext& context, FrameResource& frame)
+{
   // Get the index of the next available swapchain image:
+  vk::Semaphore imageAcquiredSemaphore;
+  if(frame.recycledSemaphores.empty())
+  {
+    imageAcquiredSemaphore = context.device.createSemaphore(vk::SemaphoreCreateInfo());
+  }else
+  {
+    imageAcquiredSemaphore = frame.recycledSemaphores.back();
+    frame.recycledSemaphores.pop_back();
+  }
 
   vk::ResultValue<uint32_t> currentBuffer =
     context.device.acquireNextImageKHR( context.swapChainData.swapChain, vk::su::FenceTimeout, imageAcquiredSemaphore, nullptr );
-  assert( currentBuffer.result == vk::Result::eSuccess );
+
+  if(currentBuffer.result != vk::Result::eSuccess) 
+  {
+    // LOGI("acquireNextImageKHR:{}", currentBuffer.result);
+    context.device.destroySemaphore(imageAcquiredSemaphore);
+    // frame.imageAcquiredSemaphores.front() = context.device.createSemaphore(vk::SemaphoreCreateInfo());
+    return currentBuffer.result;
+  }
+  
   assert( currentBuffer.value < context.framebuffers.size() );
 
   vk::PipelineStageFlags waitDestinationStageMask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
   vk::SubmitInfo         submitInfo( imageAcquiredSemaphore, waitDestinationStageMask, frame.commandBuffers.at(currentBuffer.value) );
+  auto & drawFence = frame.drawFences.at(currentBuffer.value);
   context.device.resetFences( drawFence);
   context.graphicsQueue.submit( submitInfo, drawFence );
 
   while ( vk::Result::eTimeout == context.device.waitForFences( drawFence, VK_TRUE, vk::su::FenceTimeout ) );
+  frame.recycledSemaphores.push_back(imageAcquiredSemaphore);
   // LOGI("{}:{}", __FILE__, __LINE__);
   vk::Result result =
     context.presentQueue.presentKHR( vk::PresentInfoKHR( {}, context.swapChainData.swapChain, currentBuffer.value ) );
-  switch ( result )
-  {
-    case vk::Result::eSuccess: break;
-    case vk::Result::eSuboptimalKHR:
-      std::cout << "vk::Queue::presentKHR returned vk::Result::eSuboptimalKHR !\n";
-      break;
-    default: assert( false );  // an unexpected result is returned !
-  }
+  return result;
+  // switch ( result )
+  // {
+  //   case vk::Result::eSuccess: break;
+  //   case vk::Result::eSuboptimalKHR:
+  //     std::cout << "vk::Queue::presentKHR returned vk::Result::eSuboptimalKHR !\n";
+  //     break;
+  //   default: assert( false );  // an unexpected result is returned !
+  // }
 }

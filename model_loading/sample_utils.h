@@ -41,7 +41,7 @@ struct FrameResource
   decltype(std::chrono::steady_clock::now()) timeStamp;
   std::vector<vk::CommandBuffer> commandBuffers;
   std::vector<vk::Fence> drawFences;
-  std::vector<vk::Semaphore> imageAcquiredSemaphores;
+  std::vector<vk::Semaphore> recycledSemaphores;
 };
 
 struct ModelResource
@@ -58,14 +58,14 @@ void prepare(SampleContext& context, const char* EngineName, const char* AppName
 void tearDown(SampleContext& context);
 std::vector<vk::CommandBuffer> createCommandBuffers(
   const SampleContext& context,
-  const vk::CommandPool& commandPool,
-  const ModelResource& modelResource,
-  size_t num);
+  const ModelResource& modelResource);
 void prepare(FrameResource& frame, SampleContext& context, ModelResource& modelResource);
 void tearDown(FrameResource& frame, SampleContext& context);
-void draw(SampleContext& context, FrameResource& frame);
+vk::Result draw(SampleContext& context, FrameResource& frame);
 
 void prepare(ModelResource& modelResource, const SampleContext& context);
 void tearDown(ModelResource& modelResource, const SampleContext& context);
+
+void handleSurfaceChange(SampleContext& context, const ModelResource& modelResource, FrameResource& frame);
 
 #endif // _SAMPLE_UTILS_H_

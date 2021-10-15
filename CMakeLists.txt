@@ -30,6 +30,8 @@ set(STATIC_RESOURCE_MANAGER_TEMPLATE ${PROJECT_SOURCE_DIR}/utils/resource_manage
 set(BINARIZE_RESOURCE_MANAGER_TEMPLATE ${PROJECT_SOURCE_DIR}/utils/resource_manager_binarize.cpp.in)
 set(ASSETS_FOLDER_STR ${PROJECT_SOURCE_DIR}/build/assets/)
 
+# add_definitions(-DVULKAN_HPP_NO_EXCEPTIONS)
+
 # add_subdirectory(create_device)
 add_subdirectory(simple_compute)
 add_subdirectory(synchronization)

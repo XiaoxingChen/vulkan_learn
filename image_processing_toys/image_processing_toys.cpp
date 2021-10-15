@@ -79,7 +79,7 @@ int main( int /*argc*/, char ** /*argv*/ )
 #endif
     FrameResource frame;
     prepare(frame, context);
-    frame.commandBuffers = createCommandBuffers(context, graphicsPipelineResource, modelResource, frame.imageNum);
+    frame.commandBuffers = createCommandBuffers(context, graphicsPipelineResource, modelResource);
 
     while (!glfwWindowShouldClose(context.pSurfaceData->window.handle)) {
             glfwPollEvents();
@@ -90,7 +90,11 @@ int main( int /*argc*/, char ** /*argv*/ )
 
       glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent , angle, modelResource.scale, glm::affineInverse(camPose));
       uniformBufferData.upload(context.device, mvpcMatrix);
-      draw(context, frame);
+      auto result = draw(context, frame);
+      if(result == vk::Result::eSuboptimalKHR)
+      {
+        handleSurfaceChange(context, modelResource, frame, graphicsPipelineResource);
+      }
     }
 
     context.device.waitIdle();

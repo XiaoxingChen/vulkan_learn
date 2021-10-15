@@ -72,7 +72,11 @@ int main( int /*argc*/, char ** /*argv*/ )
       angle += 0.05;
       glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent , angle);
       uniformBufferData.upload(context.device, mvpcMatrix);
-      draw(context, frame);
+      auto result = draw(context, frame);
+      if(result == vk::Result::eSuboptimalKHR)
+      {
+        handleSurfaceChange(context, vertexBufferData, frame);
+      }
 
     }
 

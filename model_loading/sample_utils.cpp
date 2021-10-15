@@ -121,25 +121,18 @@ void tearDown(SampleContext& context)
 
 std::vector<vk::CommandBuffer> createCommandBuffers(
   const SampleContext& context,
-  const vk::CommandPool& commandPool,
-  const ModelResource& modelResource,
-  size_t num)
+  const ModelResource& modelResource)
 {
+  size_t num = context.swapChainData.imageViews.size();
+  const vk::CommandPool& commandPool = context.commandPool;
+
   auto allocateInfo = vk::CommandBufferAllocateInfo( commandPool, vk::CommandBufferLevel::ePrimary, num );
   std::vector<vk::CommandBuffer> commandBuffers = context.device.allocateCommandBuffers( allocateInfo );
   for(size_t i = 0; i < commandBuffers.size(); i++)
   {
     auto & commandBuffer(commandBuffers.at(i));
     commandBuffer.begin( vk::CommandBufferBeginInfo( vk::CommandBufferUsageFlags() ) );
-#if 0
-    if(modelResource.pTextureGenerator)
-    {
-      modelResource.pTextureData->setImage(context.device, commandBuffer, *modelResource.pTextureGenerator);
-    }else
-    {
-      modelResource.pTextureData->setImage(context.device, commandBuffer, vk::su::CheckerboardImageGenerator());
-    }
-#endif
+
     std::array<vk::ClearValue, 2> clearValues;
     clearValues[0].color        = vk::ClearColorValue( std::array<float, 4>( { { 0.2f, 0.2f, 0.2f, 0.2f } } ) );
     clearValues[1].depthStencil = vk::ClearDepthStencilValue( 1.0f, 0 );
@@ -176,13 +169,13 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
 void prepare(FrameResource& frame, SampleContext& context, ModelResource& modelResource)
 {
   frame.imageNum = context.swapChainData.images.size();
-  frame.commandBuffers = createCommandBuffers(context, context.commandPool, modelResource, frame.imageNum);
+  frame.commandBuffers = createCommandBuffers(context, modelResource);
   frame.drawFences.resize(frame.imageNum);
-  frame.imageAcquiredSemaphores.resize(frame.imageNum);
+  frame.recycledSemaphores.resize(frame.imageNum);
   for(size_t i = 0; i < frame.imageNum; i++)
   {
     frame.drawFences.at(i) = context.device.createFence( vk::FenceCreateInfo() );
-    frame.imageAcquiredSemaphores.at(i) = context.device.createSemaphore( vk::SemaphoreCreateInfo() );
+    frame.recycledSemaphores.at(i) = context.device.createSemaphore( vk::SemaphoreCreateInfo() );
   }
 }
 
@@ -191,38 +184,83 @@ void tearDown(FrameResource& frame, SampleContext& context)
     for(size_t i = 0; i < frame.imageNum; i++)
     {
       context.device.destroyFence(frame.drawFences.at(i));
-      context.device.destroySemaphore( frame.imageAcquiredSemaphores.at(i));
+      context.device.destroySemaphore( frame.recycledSemaphores.at(i));
     }
 }
-void draw(SampleContext& context, FrameResource& frame)
+
+void handleSurfaceChange(SampleContext& context, const ModelResource& modelResource, FrameResource& frame)
 {
-  auto & commandBuffer = frame.commandBuffers.front();
-  auto & drawFence = frame.drawFences.front();
-  auto & imageAcquiredSemaphore = frame.imageAcquiredSemaphores.front();
+  auto surfaceCapabilities = context.physicalDevice.getSurfaceCapabilitiesKHR(context.pSurfaceData->surface);
+  const auto & newExtent = surfaceCapabilities.currentExtent;
+  if (newExtent.width == 0xFFFFFFFF) return;
+  if(newExtent.width == context.pSurfaceData->extent.width &&
+    newExtent.height == context.pSurfaceData->extent.height) return;
+
+  context.device.waitIdle();
+  for ( auto framebuffer : context.framebuffers )
+  {
+    context.device.destroyFramebuffer( framebuffer );
+  }
+  context.swapChainData.clear( context.device );
+  context.framebuffers.clear();
+  context.pDepthBuffer->clear( context.device );
+  
+  context.pSurfaceData->extent = newExtent;
+  context.swapChainData = vk::su::SwapChainData(context.physicalDevice,
+                                        context.device,
+                                        context.pSurfaceData->surface,
+                                        context.pSurfaceData->extent,
+                                        vk::ImageUsageFlagBits::eColorAttachment |
+                                          vk::ImageUsageFlagBits::eTransferSrc,
+                                        {},
+                                        context.graphicsQueueIndex,
+                                        context.graphicsQueueIndex);
+                
+  context.pDepthBuffer = std::make_shared<vk::su::DepthBufferData>(
+      context.physicalDevice,
+      context.device,
+      vk::Format::eD16Unorm,
+      context.pSurfaceData->extent);
+  context.framebuffers = vk::su::createFramebuffers(
+    context.device, context.renderPass, context.swapChainData.imageViews, context.pDepthBuffer->imageView, context.pSurfaceData->extent );
+  frame.commandBuffers = createCommandBuffers(context, modelResource);
+}
+
+vk::Result draw(SampleContext& context, FrameResource& frame)
+{
+  vk::Semaphore imageAcquiredSemaphore;
+  if(frame.recycledSemaphores.empty())
+  {
+    imageAcquiredSemaphore = context.device.createSemaphore(vk::SemaphoreCreateInfo());
+  }else
+  {
+    imageAcquiredSemaphore = frame.recycledSemaphores.back();
+    frame.recycledSemaphores.pop_back();
+  }
   // Get the index of the next available swapchain image:
 
   vk::ResultValue<uint32_t> currentBuffer =
     context.device.acquireNextImageKHR( context.swapChainData.swapChain, vk::su::FenceTimeout, imageAcquiredSemaphore, nullptr );
-  assert( currentBuffer.result == vk::Result::eSuccess );
+  if(currentBuffer.result != vk::Result::eSuccess)
+  {
+    context.device.destroySemaphore(imageAcquiredSemaphore);
+    return currentBuffer.result;
+  }
+  
   assert( currentBuffer.value < context.framebuffers.size() );
 
   vk::PipelineStageFlags waitDestinationStageMask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
   vk::SubmitInfo         submitInfo( imageAcquiredSemaphore, waitDestinationStageMask, frame.commandBuffers.at(currentBuffer.value) );
+  auto & drawFence = frame.drawFences.at(currentBuffer.value);
   context.device.resetFences( drawFence);
   context.graphicsQueue.submit( submitInfo, drawFence );
 
   while ( vk::Result::eTimeout == context.device.waitForFences( drawFence, VK_TRUE, vk::su::FenceTimeout ) );
+  frame.recycledSemaphores.push_back(imageAcquiredSemaphore);
   // LOGI("{}:{}", __FILE__, __LINE__);
   vk::Result result =
     context.presentQueue.presentKHR( vk::PresentInfoKHR( {}, context.swapChainData.swapChain, currentBuffer.value ) );
-  switch ( result )
-  {
-    case vk::Result::eSuccess: break;
-    case vk::Result::eSuboptimalKHR:
-      std::cout << "vk::Queue::presentKHR returned vk::Result::eSuboptimalKHR !\n";
-      break;
-    default: assert( false );  // an unexpected result is returned !
-  }
+  if(result != vk::Result::eSuccess) return result;
 
   frame.counter++;
   static const size_t FPS_PERIOD_BITS = 8;
@@ -234,6 +272,7 @@ void draw(SampleContext& context, FrameResource& frame)
       std::cout << "FPS: " << (FPS_PERIOD)/elapsedSeconds.count() << std::endl;
       frame.timeStamp = timeCurr;
   }
+  return vk::Result::eSuccess;
 }
 
 std::shared_ptr<vk::su::BufferData> createTexturedVertexBuffer(

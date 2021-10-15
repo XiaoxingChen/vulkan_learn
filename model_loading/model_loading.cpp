@@ -44,7 +44,7 @@ int main( int /*argc*/, char ** /*argv*/ )
   uint32_t frameCounter = 0;
   auto timePrev = std::chrono::steady_clock::now();
 
-  try
+  // try
   {
 
   prepare(context,EngineName, AppName);
@@ -107,7 +107,11 @@ int main( int /*argc*/, char ** /*argv*/ )
 
       glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent , angle, modelResource.scale, glm::affineInverse(camPose));
       uniformBufferData.upload(context.device, mvpcMatrix);
-      draw(context, frame);
+      auto result = draw(context, frame);
+      if(result == vk::Result::eSuboptimalKHR || result == vk::Result::eErrorOutOfDateKHR)
+      {
+        handleSurfaceChange(context, modelResource, frame);
+      }
     }
 
     context.device.waitIdle();
@@ -118,21 +122,21 @@ int main( int /*argc*/, char ** /*argv*/ )
     tearDown(frame, context);
     tearDown(context);
   }
-  catch ( vk::SystemError & err )
-  {
-    std::cout << "vk::SystemError: " << err.what() << std::endl;
-    exit( -1 );
-  }
-  catch ( std::exception & err )
-  {
-    std::cout << "std::exception: " << err.what() << std::endl;
-    exit( -1 );
-  }
-  catch ( ... )
-  {
-    std::cout << "unknown error\n";
-    exit( -1 );
-  }
+  // catch ( vk::SystemError & err )
+  // {
+  //   std::cout << "vk::SystemError: " << err.what() << std::endl;
+  //   exit( -1 );
+  // }
+  // catch ( std::exception & err )
+  // {
+  //   std::cout << "std::exception: " << err.what() << std::endl;
+  //   exit( -1 );
+  // }
+  // catch ( ... )
+  // {
+  //   std::cout << "unknown error\n";
+  //   exit( -1 );
+  // }
   LOGI("{}:{}", __FILE__, __LINE__);
   destroyLogger();
   return 0;

@@ -38,7 +38,7 @@ struct FrameResource
   size_t imageNum;
   std::vector<vk::CommandBuffer> commandBuffers;
   std::vector<vk::Fence> drawFences;
-  std::vector<vk::Semaphore> imageAcquiredSemaphores;
+  std::vector<vk::Semaphore> recycledSemaphores;
 };
 
 void prepare(SampleContext& context, const char* EngineName, const char* AppName);
@@ -46,11 +46,11 @@ void tearDown(SampleContext& context);
 std::vector<vk::CommandBuffer> createCommandBuffers(
   const SampleContext& context,
   const vk::CommandPool& commandPool,
-  const vk::su::BufferData& vertexBufferData,
-  size_t num);
+  const vk::su::BufferData& vertexBufferData);
 void prepare(FrameResource& frame, SampleContext& context, vk::su::BufferData& vertexBufferData);
 void tearDown(FrameResource& frame, SampleContext& context);
-void draw(SampleContext& context, FrameResource& frame);
+vk::Result draw(SampleContext& context, FrameResource& frame);
+void handleSurfaceChange(SampleContext& context, const vk::su::BufferData& vertexBufferData, FrameResource& frame);
 
 
 #endif // _SAMPLE_UTILS_H_
