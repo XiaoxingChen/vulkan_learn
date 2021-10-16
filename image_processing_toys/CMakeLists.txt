@@ -13,6 +13,7 @@ generateShaderManagerCode(
 add_executable(${TARGET_NAME}
     ${TARGET_NAME}.cpp
     sample_utils.cpp
+    access_euroc_dataset.cpp
     ${SHADER_MANAGER_OUTPUT_PATH})
 
 target_include_directories(${TARGET_NAME} PUBLIC

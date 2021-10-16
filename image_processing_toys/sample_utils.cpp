@@ -2,6 +2,8 @@
 #include "gltf_utils.h"
 #include <stb_image.h>
 #include "utils/resource_manager.h"
+#include "image_processing_toys/euroc_io.h"
+#include <stb_image.h>
 
 void prepare(SampleContext& context, const char* EngineName, const char* AppName)
 {
@@ -17,7 +19,7 @@ void prepare(SampleContext& context, const char* EngineName, const char* AppName
   context.physicalDevice = context.instance.enumeratePhysicalDevices().front();
 
   std::cout << __FILE__ << ":" << __LINE__ << std::endl;
-  context.pSurfaceData = std::make_shared<vk::su::SurfaceData>(context.physicalDevice, context.instance, AppName, vk::Extent2D( 500, 500 ));
+  context.pSurfaceData = std::make_shared<vk::su::SurfaceData>(context.physicalDevice, context.instance, AppName, vk::Extent2D( euroc::resolution()[0], euroc::resolution()[1] ));
 
   std::pair<uint32_t, uint32_t> graphicsAndPresentQueueFamilyIndex =
     vk::su::findGraphicsAndPresentQueueFamilyIndex(context.physicalDevice, context.pSurfaceData->surface );
@@ -130,24 +132,24 @@ void tearDown(const GraphicsPipelineResource& pipeline, const SampleContext& con
   context.device.destroyDescriptorSetLayout( pipeline.descriptorSetLayout );
 }
 
-void prepareCompute(ComputePipelineResource& pipeline, const SampleContext& context)
+void prepareCompute(ComputePipelineResource& pipeline, const SampleContext& context, const std::string& shaderName)
 {
   pipeline.descriptorSetLayout = vk::su::createDescriptorSetLayout(
-      context.device, { 
+      context.device, {
         { vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute },
-        { vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eCompute } } );
+        { vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eCompute },
+        { vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute } } );
 
-  pipeline.descriptorPool = vk::su::createDescriptorPool( context.device, { 
+  pipeline.descriptorPool = vk::su::createDescriptorPool( context.device, {
     { vk::DescriptorType::eStorageBuffer, 1 },
-    { vk::DescriptorType::eUniformBuffer, 1 } } );
+    { vk::DescriptorType::eUniformBuffer, 1 },
+    { vk::DescriptorType::eStorageBuffer, 1 } } );
   pipeline.descriptorSet = std::move(
       context.device.allocateDescriptorSets( vk::DescriptorSetAllocateInfo( pipeline.descriptorPool, pipeline.descriptorSetLayout ) )
         .front() );
   glslang::InitializeProcess();
-  pipeline.computeShaderModule = vk::su::createShaderModule(context.device, vk::ShaderStageFlagBits::eCompute, 
-    // readShaderSource("show_coordination.comp")
-    readShaderSource("wave.comp")
-    );
+  pipeline.computeShaderModule = vk::su::createShaderModule(context.device, vk::ShaderStageFlagBits::eCompute,
+    readShaderSource(shaderName));
   glslang::FinalizeProcess();
   pipeline.layout = context.device.createPipelineLayout(
       vk::PipelineLayoutCreateInfo( vk::PipelineLayoutCreateFlags(), pipeline.descriptorSetLayout )
@@ -169,22 +171,54 @@ void tearDown(const ComputePipelineResource& pipeline, const SampleContext& cont
 vk::CommandBuffer createCommandBuffer(
   const SampleContext& context,
   const ComputePipelineResource& pipeline,
-  const ModelResource& modelResource)
+  const ModelResource& modelResource,
+  const BufferList& bufferList)
 {
   vk::CommandBuffer commandBuffer = std::move( context.device.allocateCommandBuffers( vk::CommandBufferAllocateInfo(
                                                            context.commandPool, vk::CommandBufferLevel::ePrimary, 1 ) )
                                                          .front() );
     // std::cout << "shader: \n" << readShaderSource("test.comp") << std::endl;
 
-    
+
     // command buffer
     commandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlags()));
     commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline.self);
     commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeline.layout, 0, pipeline.descriptorSet, nullptr);
     commandBuffer.dispatch(
-      (uint32_t)ceil(modelResource.pTextureData->extent.width / float(WORKGROUP_SIZE)), 
-      (uint32_t)ceil(modelResource.pTextureData->extent.height / float(WORKGROUP_SIZE)), 1);
+      (uint32_t)ceil(euroc::resolution()[0] / float(WORKGROUP_SIZE)),
+      (uint32_t)ceil(euroc::resolution()[1] / float(WORKGROUP_SIZE)), 1);
     // commandBuffer.dispatch(2,2, 1);
+    modelResource.pTextureData->setImage(context.device, commandBuffer, *bufferList.pComputeOutput);
+    commandBuffer.end();
+    return commandBuffer;
+}
+
+vk::CommandBuffer createCommandBuffer(
+  const SampleContext& context,
+  const ComputePipelineResource& rawGrayU8ToF32pipeline,
+  const ComputePipelineResource& f32ToU8RGBApipeline,
+  const ModelResource& modelResource,
+  const BufferList& bufferList)
+{
+  vk::CommandBuffer commandBuffer = std::move( context.device.allocateCommandBuffers( vk::CommandBufferAllocateInfo(
+                                                           context.commandPool, vk::CommandBufferLevel::ePrimary, 1 ) )
+                                                         .front() );
+    // command buffer
+    commandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlags()));
+
+    commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, rawGrayU8ToF32pipeline.self);
+    commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rawGrayU8ToF32pipeline.layout, 0, rawGrayU8ToF32pipeline.descriptorSet, nullptr);
+    commandBuffer.dispatch(
+      (uint32_t)ceil(euroc::resolution()[0] / float(WORKGROUP_SIZE)),
+      (uint32_t)ceil(euroc::resolution()[1] / float(WORKGROUP_SIZE)), 1);
+
+    commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, f32ToU8RGBApipeline.self);
+    commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, f32ToU8RGBApipeline.layout, 0, f32ToU8RGBApipeline.descriptorSet, nullptr);
+    commandBuffer.dispatch(
+      (uint32_t)ceil(euroc::resolution()[0] / float(WORKGROUP_SIZE)),
+      (uint32_t)ceil(euroc::resolution()[1] / float(WORKGROUP_SIZE)), 1);
+
+    modelResource.pTextureData->setImage(context.device, commandBuffer, *bufferList.pComputeOutput);
     commandBuffer.end();
     return commandBuffer;
 }
@@ -201,6 +235,8 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
   {
     auto & commandBuffer(commandBuffers.at(i));
     commandBuffer.begin( vk::CommandBufferBeginInfo( vk::CommandBufferUsageFlags() ) );
+
+    // modelResource.pTextureData->setImage(context.device, commandBuffer, *modelResource.pTextureGenerator);
 
     std::array<vk::ClearValue, 2> clearValues;
     clearValues[0].color        = vk::ClearColorValue( std::array<float, 4>( { { 0.2f, 0.2f, 0.2f, 0.2f } } ) );
@@ -276,7 +312,7 @@ void handleSurfaceChange(SampleContext& context, const ModelResource& modelResou
   context.swapChainData.clear( context.device );
   context.framebuffers.clear();
   context.pDepthBuffer->clear( context.device );
-  
+
   context.pSurfaceData->extent = newExtent;
   context.swapChainData = vk::su::SwapChainData(context.physicalDevice,
                                         context.device,
@@ -287,7 +323,7 @@ void handleSurfaceChange(SampleContext& context, const ModelResource& modelResou
                                         {},
                                         context.graphicsQueueIndex,
                                         context.graphicsQueueIndex);
-                
+
   context.pDepthBuffer = std::make_shared<vk::su::DepthBufferData>(
       context.physicalDevice,
       context.device,
@@ -318,7 +354,7 @@ vk::Result draw(SampleContext& context, FrameResource& frame)
     context.device.destroySemaphore(imageAcquiredSemaphore);
     return currentBuffer.result;
   }
-  
+
   assert( currentBuffer.value < context.framebuffers.size() );
 
   vk::PipelineStageFlags waitDestinationStageMask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
@@ -334,6 +370,7 @@ vk::Result draw(SampleContext& context, FrameResource& frame)
     context.presentQueue.presentKHR( vk::PresentInfoKHR( {}, context.swapChainData.swapChain, currentBuffer.value ) );
   if(result != vk::Result::eSuccess) return result;
 
+#if 0
   frame.counter++;
   static const size_t FPS_PERIOD_BITS = 8;
   static const size_t FPS_PERIOD = ((1 << FPS_PERIOD_BITS) - 1);
@@ -344,6 +381,7 @@ vk::Result draw(SampleContext& context, FrameResource& frame)
       std::cout << "FPS: " << (FPS_PERIOD)/elapsedSeconds.count() << std::endl;
       frame.timeStamp = timeCurr;
   }
+#endif
   return vk::Result::eSuccess;
 }
 
@@ -383,11 +421,12 @@ void prepare(ModelResource& modelResource, const SampleContext& context)
   modelResource.pVertexBuffer = createTexturedVertexBuffer(context);
 
   // modelResource.pTextureGenerator = vk::su::createImageGenerator(assetsFolder() + "damaged_helmet.png");
+  // modelResource.pTextureGenerator = vk::su::createImageGenerator(euroc::imagePaths("V1_01_easy", 0).at(0));
 
   modelResource.pTextureData = std::make_shared<vk::su::TextureData>(
     context.physicalDevice,
     context.device,
-    modelResource.pTextureGenerator ? modelResource.pTextureGenerator->extent() : vk::Extent2D(300, 300),
+    modelResource.pTextureGenerator ? modelResource.pTextureGenerator->extent() : vk::Extent2D(euroc::resolution()[0], euroc::resolution()[1]),
     vk::ImageUsageFlags(),vk::FormatFeatureFlags(),false, true);
 
   vk::su::oneTimeSubmit(context.device, context.commandPool, context.graphicsQueue,
@@ -434,14 +473,34 @@ void tearDown(ModelResource& modelResource, const SampleContext& context)
     LOGI("{}:{}", __FILE__, __LINE__);
   }
 }
-  
-void BufferList::prepare(SampleContext& context, const ModelResource& modelResource)
+
+void BufferList::prepare(SampleContext& context)
 {
-  size_t computeOutputSize = sizeof(uint32_t) * modelResource.pTextureData->extent.height * modelResource.pTextureData->extent.width;
+  size_t imagePixels = euroc::resolution()[0] * euroc::resolution()[1];
+
   pComputeOutput = std::make_shared<vk::su::BufferData>(
-      context.physicalDevice, context.device, computeOutputSize, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc );
+      context.physicalDevice, context.device, sizeof(uint32_t) * imagePixels, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc| vk::BufferUsageFlagBits::eTransferDst );
   pComputeUniform = std::make_shared<vk::su::BufferData>(
-      context.physicalDevice, context.device, sizeof(ComputeUniformInfo), vk::BufferUsageFlagBits::eUniformBuffer );
+      context.physicalDevice, context.device, sizeof(shader::ComputeUniformInfo), vk::BufferUsageFlagBits::eUniformBuffer );
+  pImageData = std::make_shared<vk::su::BufferData>(
+      context.physicalDevice, context.device, sizeof(shader::ImageData) * imagePixels, vk::BufferUsageFlagBits::eStorageBuffer );
+  pImageU8RawGray = std::make_shared<vk::su::BufferData>(
+      context.physicalDevice, context.device, sizeof(uint8_t) * imagePixels, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
+}
+
+void BufferList::updateRawImage(const SampleContext& context, const std::string imageFilename)
+{
+  int texWidth, texHeight, texChannels;
+  stbi_uc* pixels = stbi_load(imageFilename.c_str(), &texWidth, &texHeight, &texChannels, STBI_grey);
+  // std::vector<uint8_t> mock(euroc::resolution()[0] * euroc::resolution()[1]);
+  // for(auto & v: mock) v = 255;
+  // pImageU8RawGray->upload(context.device, mock);
+
+  void * dataPtr = context.device.mapMemory( pImageU8RawGray->deviceMemory, 0, texWidth * texHeight );
+  memcpy( dataPtr, pixels, texWidth * texHeight );
+  context.device.unmapMemory( pImageU8RawGray->deviceMemory );
+
+  free (pixels);
 }
 
 void BufferList::tearDown(SampleContext& context)
@@ -456,6 +515,14 @@ void BufferList::tearDown(SampleContext& context)
     pComputeUniform->clear(context.device);
     pComputeUniform.reset();
   }
-  
-  
+  if(pImageData)
+  {
+    pImageData->clear(context.device);
+    pImageData.reset();
+  }
+  if(pImageU8RawGray)
+  {
+    pImageU8RawGray->clear(context.device);
+    pImageU8RawGray.reset();
+  }
 }

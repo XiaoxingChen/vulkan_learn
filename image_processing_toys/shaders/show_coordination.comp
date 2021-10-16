@@ -15,20 +15,20 @@ layout (std140, binding = 1) uniform InputBuffer
 } uniformBuffer;
 
 void main() {
-
   /*
   In order to fit the work into workgroups, some unnecessary threads are launched.
   We terminate those threads here.
   */
  #if  1
+  // 4px per thread
   if(gl_GlobalInvocationID.x >= uniformBuffer.imgSize.x/4)
     return;
   if(gl_GlobalInvocationID.y >= uniformBuffer.imgSize.y)
     return;
   uint stride = uniformBuffer.imgSize.x/4;
-  
+
   uint index = stride * gl_GlobalInvocationID.y + gl_GlobalInvocationID.x;
-  
+
   imageData[index] = uvec4(0xff0000ff);
   vec4 x = vec4(0,1,2,3);
   x += 4. * gl_GlobalInvocationID.x;
@@ -40,7 +40,7 @@ void main() {
   imageData[index] &= 0xff000000;
   imageData[index] |= redness;
   imageData[index] |= (greeness << 8);
-  
+
   #else
     if(gl_GlobalInvocationID.x != 0 || gl_GlobalInvocationID.y != 0)
       return;

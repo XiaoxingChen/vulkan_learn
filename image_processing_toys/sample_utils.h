@@ -78,14 +78,28 @@ struct BufferList
 {
   std::shared_ptr<vk::su::BufferData> pComputeOutput = nullptr;
   std::shared_ptr<vk::su::BufferData> pComputeUniform = nullptr;
-  void prepare(SampleContext& context, const ModelResource& modelResource);
+  std::shared_ptr<vk::su::BufferData> pImageData = nullptr;
+  std::shared_ptr<vk::su::BufferData> pImageU8RawGray = nullptr;
+  void prepare(SampleContext& context);
   void tearDown(SampleContext& context);
+  void updateRawImage(const SampleContext& context, const std::string imageFilename);
 };
+
+namespace shader{
 
 struct ComputeUniformInfo{
   glm::ivec4 imgSize;
   float timestamp;
 };
+
+struct ImageData{
+  glm::vec4 rawGray;
+  glm::vec4 gradX;
+  glm::vec4 gradY;
+  glm::vec4 harris;
+};
+
+}
 
 void prepare(SampleContext& context, const char* EngineName, const char* AppName);
 void tearDown(SampleContext& context);
@@ -93,11 +107,19 @@ std::vector<vk::CommandBuffer> createCommandBuffers(
   const SampleContext& context,
   const GraphicsPipelineResource& pipe,
   const ModelResource& modelResource);
-  
+
 vk::CommandBuffer createCommandBuffer(
   const SampleContext& context,
   const ComputePipelineResource& pipeline,
-  const ModelResource& modelResource);
+  const ModelResource& modelResource,
+  const BufferList& bufferList);
+
+vk::CommandBuffer createCommandBuffer(
+  const SampleContext& context,
+  const ComputePipelineResource& rawGrayU8ToF32pipeline,
+  const ComputePipelineResource& f32ToU8RGBApipeline,
+  const ModelResource& modelResource,
+  const BufferList& bufferList);
 
 void prepare(FrameResource& frame, SampleContext& context);
 void tearDown(FrameResource& frame, SampleContext& context);
@@ -109,7 +131,7 @@ void tearDown(ModelResource& modelResource, const SampleContext& context);
 void prepareRectangle(GraphicsPipelineResource& pipe, const SampleContext& context);
 void tearDown(const GraphicsPipelineResource& pipe, const SampleContext& context);
 
-void prepareCompute(ComputePipelineResource& pipe, const SampleContext& context);
+void prepareCompute(ComputePipelineResource& pipe, const SampleContext& context, const std::string& shaderName);
 void tearDown(const ComputePipelineResource& pipe, const SampleContext& context);
 
 void handleSurfaceChange(SampleContext& context, const ModelResource& modelResource, FrameResource& frame, const GraphicsPipelineResource& pipe);

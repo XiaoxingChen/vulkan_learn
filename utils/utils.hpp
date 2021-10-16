@@ -540,6 +540,8 @@ std::string to_string(const Container<T, Alloc>& container, size_t prec=6)
     }
     return ret;
 }
+
+void fpsSticker();
   }  // namespace su
 }  // namespace vk
 

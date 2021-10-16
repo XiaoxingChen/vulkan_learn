@@ -30,6 +30,7 @@
 #include <iomanip>
 #include <numeric>
 #include <stb_image.h>
+#include <chrono>
 #ifndef __ANDROID__
 #include "event_manager.h"
 #endif
@@ -1318,7 +1319,7 @@ namespace vk
   {
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    std::cout << "original texChannels: " << texChannels << ", size: " << texWidth << "," << texHeight << std::endl;
+    // std::cout << "original texChannels: " << texChannels << ", size: " << texWidth << "," << texHeight << std::endl;
     if(3 == texChannels)
     {
       texChannels = 4;
@@ -1327,7 +1328,7 @@ namespace vk
     if (!pixels) {
         throw std::runtime_error("failed to load texture image!");
     }
-    auto img = std::make_shared<vk::su::PixelsImageGenerator>(vk::Extent2D(texWidth, texHeight), texChannels, pixels);
+    auto img = std::make_shared<vk::su::PixelsImageGenerator>(vk::Extent2D(texWidth, texHeight), STBI_rgb_alpha, pixels);
     return img;
   }
 
@@ -1344,6 +1345,23 @@ namespace vk
 
       return actualExtent;
   }
+
+void fpsSticker()
+{
+  static const size_t FPS_PERIOD_BITS = 8;
+  static const size_t FPS_PERIOD = ((1 << FPS_PERIOD_BITS) - 1);
+  static size_t frameCounter(0);
+  static decltype(std::chrono::steady_clock::now()) timeStamp;
+  frameCounter++;
+  if((frameCounter & FPS_PERIOD) == 0)
+  {
+      auto timeCurr = std::chrono::steady_clock::now();
+      std::chrono::duration<double> elapsedSeconds = timeCurr - timeStamp;
+      // LOGI("FPS: {}", (FPS_PERIOD)/elapsedSeconds.count());
+      std::cout << "FPS: " << (FPS_PERIOD)/elapsedSeconds.count() << std::endl;
+      timeStamp = timeCurr;
+  }
+}
 
   }  // namespace su
 }  // namespace vk

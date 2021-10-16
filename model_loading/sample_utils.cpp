@@ -184,6 +184,9 @@ void tearDown(FrameResource& frame, SampleContext& context)
     for(size_t i = 0; i < frame.imageNum; i++)
     {
       context.device.destroyFence(frame.drawFences.at(i));
+    }
+    for(size_t i = 0; i < frame.recycledSemaphores.size(); i++)
+    {
       context.device.destroySemaphore( frame.recycledSemaphores.at(i));
     }
 }
@@ -204,7 +207,7 @@ void handleSurfaceChange(SampleContext& context, const ModelResource& modelResou
   context.swapChainData.clear( context.device );
   context.framebuffers.clear();
   context.pDepthBuffer->clear( context.device );
-  
+
   context.pSurfaceData->extent = newExtent;
   context.swapChainData = vk::su::SwapChainData(context.physicalDevice,
                                         context.device,
@@ -215,7 +218,7 @@ void handleSurfaceChange(SampleContext& context, const ModelResource& modelResou
                                         {},
                                         context.graphicsQueueIndex,
                                         context.graphicsQueueIndex);
-                
+
   context.pDepthBuffer = std::make_shared<vk::su::DepthBufferData>(
       context.physicalDevice,
       context.device,
@@ -246,7 +249,7 @@ vk::Result draw(SampleContext& context, FrameResource& frame)
     context.device.destroySemaphore(imageAcquiredSemaphore);
     return currentBuffer.result;
   }
-  
+
   assert( currentBuffer.value < context.framebuffers.size() );
 
   vk::PipelineStageFlags waitDestinationStageMask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
@@ -350,7 +353,7 @@ std::shared_ptr<vk::su::PixelsImageGenerator> createImageGenerator(const std::st
 {
   int texWidth, texHeight, texChannels;
   stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-  std::cout << "original texChannels: " << texChannels << std::endl;
+  // std::cout << "original texChannels: " << texChannels << std::endl;
   if(3 == texChannels)
   {
     texChannels = 4;

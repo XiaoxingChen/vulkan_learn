@@ -1,0 +1,46 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+#define WORKGROUP_SIZE 32
+layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
+
+struct ImageData
+{
+    vec4 rawGray;
+    vec4 gradX;
+    vec4 gradY;
+    vec4 harris;
+};
+
+layout(std140, binding = 0) buffer buf
+{
+   uvec4 imageRGBAU8[];
+};
+
+layout (std140, binding = 1) uniform InputBuffer
+{
+  ivec4 imgSize;
+  float timestamp;
+} uniformBuffer;
+
+layout(std140, binding = 2) buffer buf2
+{
+   ImageData imageData[];
+};
+
+void main()
+{
+    uint pxPerThread = 4;
+    if(gl_GlobalInvocationID.x >= uniformBuffer.imgSize.x / pxPerThread)
+        return;
+    if(gl_GlobalInvocationID.y >= uniformBuffer.imgSize.y)
+        return;
+    uint stride = uniformBuffer.imgSize.x/4;
+    uint index = stride * gl_GlobalInvocationID.y + gl_GlobalInvocationID.x;
+
+    uvec4 gray = uvec4(imageData[index].rawGray * 255.f);
+    uvec4 color = uvec4(0xff000000) | (gray << 16) | (gray << 8) | gray;
+
+    imageRGBAU8[index] = color;
+    // imageRGBAU8[index] = uvec4(0xffff0000);
+}

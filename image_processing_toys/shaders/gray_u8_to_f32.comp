@@ -1,0 +1,51 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+#define WORKGROUP_SIZE 32
+layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
+
+struct ImageData
+{
+    vec4 rawGray;
+    vec4 gradX;
+    vec4 gradY;
+    vec4 harris;
+};
+
+layout(std140, binding = 0) buffer buf
+{
+   uvec4 imageGrayU8Raw[];
+};
+
+layout (std140, binding = 1) uniform InputBuffer
+{
+  ivec4 imgSize;
+  float timestamp;
+} uniformBuffer;
+
+layout(std140, binding = 2) buffer buf2
+{
+   ImageData imageData[];
+};
+
+void main()
+{
+    uint pxPerThread = 4;
+    if(gl_GlobalInvocationID.x >= uniformBuffer.imgSize.x / pxPerThread)
+        return;
+    if(gl_GlobalInvocationID.y >= uniformBuffer.imgSize.y)
+        return;
+
+    // input buffer (u8 1channel) size: uniformBuffer.imgSize.x * uniformBuffer.imgSize.y / 16
+    // output buffer (f32 1channel) size: uniformBuffer.imgSize.x * uniformBuffer.imgSize.y / 4
+    uint stride = uniformBuffer.imgSize.x / pxPerThread;
+
+    uint index = stride * gl_GlobalInvocationID.y + gl_GlobalInvocationID.x;
+    uint indexSrcMajor = index >> 2; //index / 4;
+    uint indexSrcMinor = index & 3; //index % 4;
+
+    uvec4 grayU8 = uvec4(imageGrayU8Raw[indexSrcMajor][indexSrcMinor]);
+    uvec4 shiftVal = uvec4(0,8,16,24);
+
+    imageData[index].rawGray = vec4(((grayU8 >> shiftVal) & 0xff) / 255.f);
+}
