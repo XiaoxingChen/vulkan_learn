@@ -347,15 +347,20 @@ vk::Result draw(SampleContext& context, FrameResource& frame)
   }
   // Get the index of the next available swapchain image:
 
-  vk::ResultValue<uint32_t> currentBuffer =
-    context.device.acquireNextImageKHR( context.swapChainData.swapChain, vk::su::FenceTimeout, imageAcquiredSemaphore, nullptr );
+  vk::ResultValue<uint32_t> currentBuffer(vk::Result::eSuccess, 0);
+  try
+  {
+    currentBuffer = context.device.acquireNextImageKHR( context.swapChainData.swapChain, vk::su::FenceTimeout, imageAcquiredSemaphore, nullptr );
+  }
+  catch(const vk::SystemError& e)
+  {
+    currentBuffer.result = static_cast<vk::Result>(e.code().value());
+  }
   if(currentBuffer.result != vk::Result::eSuccess)
   {
     context.device.destroySemaphore(imageAcquiredSemaphore);
     return currentBuffer.result;
   }
-
-  assert( currentBuffer.value < context.framebuffers.size() );
 
   vk::PipelineStageFlags waitDestinationStageMask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
   vk::SubmitInfo         submitInfo( imageAcquiredSemaphore, waitDestinationStageMask, frame.commandBuffers.at(currentBuffer.value) );
@@ -366,23 +371,16 @@ vk::Result draw(SampleContext& context, FrameResource& frame)
   while ( vk::Result::eTimeout == context.device.waitForFences( drawFence, VK_TRUE, vk::su::FenceTimeout ) );
   frame.recycledSemaphores.push_back(imageAcquiredSemaphore);
   // LOGI("{}:{}", __FILE__, __LINE__);
-  vk::Result result =
-    context.presentQueue.presentKHR( vk::PresentInfoKHR( {}, context.swapChainData.swapChain, currentBuffer.value ) );
-  if(result != vk::Result::eSuccess) return result;
-
-#if 0
-  frame.counter++;
-  static const size_t FPS_PERIOD_BITS = 8;
-  static const size_t FPS_PERIOD = ((1 << FPS_PERIOD_BITS) - 1);
-  if((frame.counter & FPS_PERIOD) == 0)
+  vk::Result result = vk::Result::eSuccess;
+  try
   {
-      auto timeCurr = std::chrono::steady_clock::now();
-      std::chrono::duration<double> elapsedSeconds = timeCurr - frame.timeStamp;
-      std::cout << "FPS: " << (FPS_PERIOD)/elapsedSeconds.count() << std::endl;
-      frame.timeStamp = timeCurr;
+    result = context.presentQueue.presentKHR( vk::PresentInfoKHR( {}, context.swapChainData.swapChain, currentBuffer.value ) );
   }
-#endif
-  return vk::Result::eSuccess;
+  catch(const vk::SystemError& e)
+  {
+    result = static_cast<vk::Result>(e.code().value());
+  }
+  if(result != vk::Result::eSuccess) return result;
 }
 
 std::shared_ptr<vk::su::BufferData> createTexturedVertexBuffer(const SampleContext& context)

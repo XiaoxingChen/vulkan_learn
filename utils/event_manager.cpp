@@ -123,7 +123,7 @@ KeyCode translate_key_code(int key)
 
 	if (key_it == key_lookup.end())
 	{
-		return KeyCode::Unknown;
+        return KeyCode::Unknown;
 	}
 
 	return key_it->second;
@@ -133,65 +133,60 @@ KeyAction translate_key_action(int action)
 {
 	if (action == GLFW_PRESS)
 	{
-		return KeyAction::Down;
+        return KeyAction::Down;
 	}
 	else if (action == GLFW_RELEASE)
 	{
-		return KeyAction::Up;
+        return KeyAction::Up;
 	}
 	else if (action == GLFW_REPEAT)
 	{
-		return KeyAction::Repeat;
+        return KeyAction::Repeat;
 	}
 
 	return KeyAction::Unknown;
 }
 
-std::list<KeyBoardEvent>& eventList()
+EventListType& eventList()
 {
-    static std::list<KeyBoardEvent> eventList;
+    static EventListType eventList;
     return eventList;
 }
 
 void keyCallback(GLFWwindow *window, int key, int /*scancode*/, int action, int /*mods*/)
 {
     // std::cout << "key["<< key << "] action: " << action << std::endl;
-    eventList().push_back(KeyBoardEvent{
-        translate_key_code(key),
-        translate_key_action(action)});
+    eventList().push_back(
+        std::shared_ptr<EventBase>(
+            new KeyBoardEvent( translate_key_code(key), translate_key_action(action))
+        ));
 }
 
-bool handleExit(const std::list<KeyBoardEvent>& eventList)
+bool handleExit(const EventListType& eventList)
 {
     for(const auto& e: eventList)
     {
-        if(e.key == KeyCode::Escape) return true;
+        if(e->source() == EventSource::KeyBoard && static_cast<KeyBoardEvent*>(e.get())->key == KeyCode::Escape)
+            return true;
     }
     return false;
 }
-glm::mat4x4 handleMotion(std::list<KeyBoardEvent>& eventList, const glm::mat4x4& prevPose)
+glm::mat4x4 handleMotion(const EventListType& eventList, const glm::mat4x4& prevPose)
 {
     std::set<KeyCode> relatedKeys{KeyCode::A, KeyCode::S, KeyCode::W, KeyCode::D, KeyCode::I, KeyCode::K, KeyCode::Up, KeyCode::Down, KeyCode::Left, KeyCode::Right};
     glm::mat4x4 tf(1.f);
 	glm::mat4x4 prevRot(prevPose);
 	prevRot[3] = glm::vec4(0,0,0,1);
-	float error;
-	if(!vk::su::isSE3(prevRot, &error))
-	{
-		std::cout << "prevRot is not SE3! Error: " << error << std::endl;
-		std::cout << glm::to_string(prevRot) << std::endl;
-		std::cout << "prevPose: " << vk::su::isSE3(prevPose, nullptr) << std::endl;
-		exit(0);
-	}
 
     const float ROT_STEP = 0.1;
     const float TRA_STEP = 0.5;
-    for(auto it = eventList.begin(); it != eventList.end(); )
+    for(const auto & itAll : eventList)
     {
+        if(itAll->source() != EventSource::KeyBoard) continue;
+        auto it = static_cast<KeyBoardEvent*>(itAll.get());
         if(0 == relatedKeys.count(it->key) ||
             (it->action != KeyAction::Down && it->action != KeyAction::Repeat))
         {
-            it++;
             continue;
         }
 
@@ -228,17 +223,27 @@ glm::mat4x4 handleMotion(std::list<KeyBoardEvent>& eventList, const glm::mat4x4&
         {
             localTf[3][0] = TRA_STEP;
         }
-		// float error;
-		// if(!vk::su::isSE3(localTf, &error))
-		// {
-		// 	std::cout << "localTf is not SE3! Error: " << error << std::endl;
-		// 	std::cout << glm::to_string(localTf) << std::endl;
-		// 	std::cout << glm::to_string(glm::mat4_cast(glm::angleAxis(ROT_STEP, glm::vec3(1,0,0)))) << std::endl;
-		// }
         tf = tf * localTf;
-        it = eventList.erase(it);
     }
     return tf;
+}
+
+std::function<void()>& windowResizeFunctor()
+{
+    static std::function<void()> f = [](){};
+    return f;
+}
+
+void windowSizeCallback(GLFWwindow *window, int width, int height)
+{
+    auto f = windowResizeFunctor();
+    f();
+}
+
+bool windowSizeChanged(const EventListType& eventList)
+{
+    for(const auto & e: eventList) if(e->source() == EventSource::WindowSize) return true;
+    return false;
 }
 
 } // namespace su

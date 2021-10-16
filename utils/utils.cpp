@@ -1272,6 +1272,7 @@ namespace vk
       glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
       GLFWwindow * window = glfwCreateWindow( extent.width, extent.height, windowName.c_str(), nullptr, nullptr );
       glfwSetKeyCallback(window, keyCallback);
+      glfwSetWindowSizeCallback(window, windowSizeCallback);
 
       return WindowData( window, windowName, extent );
 #else

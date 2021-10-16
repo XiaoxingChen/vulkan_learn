@@ -241,16 +241,24 @@ vk::Result draw(SampleContext& context, FrameResource& frame)
     frame.recycledSemaphores.pop_back();
   }
   // Get the index of the next available swapchain image:
-
-  vk::ResultValue<uint32_t> currentBuffer =
-    context.device.acquireNextImageKHR( context.swapChainData.swapChain, vk::su::FenceTimeout, imageAcquiredSemaphore, nullptr );
+  vk::ResultValue<uint32_t> currentBuffer(vk::Result::eSuccess, 0);
+  try
+  {
+    currentBuffer =
+      context.device.acquireNextImageKHR( context.swapChainData.swapChain, vk::su::FenceTimeout, imageAcquiredSemaphore, nullptr );
+  }
+  catch(const vk::SystemError& e)
+  {
+    std::cerr << e.what() << ", code: " << e.code().value() << '\n';
+    currentBuffer.result = static_cast<vk::Result>(e.code().value());
+  }
   if(currentBuffer.result != vk::Result::eSuccess)
   {
     context.device.destroySemaphore(imageAcquiredSemaphore);
     return currentBuffer.result;
   }
 
-  assert( currentBuffer.value < context.framebuffers.size() );
+  // assert( currentBuffer.value < context.framebuffers.size() );
 
   vk::PipelineStageFlags waitDestinationStageMask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
   vk::SubmitInfo         submitInfo( imageAcquiredSemaphore, waitDestinationStageMask, frame.commandBuffers.at(currentBuffer.value) );
@@ -261,8 +269,16 @@ vk::Result draw(SampleContext& context, FrameResource& frame)
   while ( vk::Result::eTimeout == context.device.waitForFences( drawFence, VK_TRUE, vk::su::FenceTimeout ) );
   frame.recycledSemaphores.push_back(imageAcquiredSemaphore);
   // LOGI("{}:{}", __FILE__, __LINE__);
-  vk::Result result =
-    context.presentQueue.presentKHR( vk::PresentInfoKHR( {}, context.swapChainData.swapChain, currentBuffer.value ) );
+  vk::Result result = vk::Result::eSuccess;
+  try
+  {
+    result = context.presentQueue.presentKHR( vk::PresentInfoKHR( {}, context.swapChainData.swapChain, currentBuffer.value ) );
+  }
+  catch(const vk::SystemError& e)
+  {
+    std::cerr << e.what() << ", code: " << e.code() << '\n';
+    result = static_cast<vk::Result>(e.code().value());
+  }
   if(result != vk::Result::eSuccess) return result;
 
   frame.counter++;

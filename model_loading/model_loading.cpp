@@ -75,35 +75,17 @@ int main( int /*argc*/, char ** /*argv*/ )
 #endif
     FrameResource frame;
     prepare(frame, context, modelResource);
+    vk::su::windowResizeFunctor() = [&](){handleSurfaceChange(context, modelResource, frame);};
 
     while (!glfwWindowShouldClose(context.pSurfaceData->window.handle)) {
             glfwPollEvents();
 
       if (handleExit(vk::su::eventList())) break;
       auto tfInput = vk::su::handleMotion(vk::su::eventList(), camPose);
-      // if(vk::su::eventList().size() > 0)
-      // {
-      //   std::cout << glm::to_string(tfInput) << std::endl;
-      // }
+
       vk::su::eventList().clear();
       // angle += 0.001;
       camPose = camPose * tfInput;
-      float error(0);
-      if(!vk::su::isSE3(tfInput, &error))
-      {
-        std::cout << "tfInput is not SE3! Error: " << error << std::endl;
-        std::cout << glm::to_string(tfInput) << std::endl;
-        if(error > 1.f)
-          break;
-      }
-
-      if(!vk::su::isSE3(camPose, &error))
-      {
-        std::cout << "camPose is not SE3! Error: " << error << std::endl;
-        std::cout << glm::to_string(camPose) << std::endl;
-        if(error > 1.f)
-          break;
-      }
 
       glm::mat4x4 mvpcMatrix = vk::su::createModelViewProjectionClipMatrix( context.pSurfaceData->extent , angle, modelResource.scale, glm::affineInverse(camPose));
       uniformBufferData.upload(context.device, mvpcMatrix);

@@ -112,7 +112,7 @@ int main( int /*argc*/, char ** /*argv*/ )
     auto computeCommandBuffer = createCommandBuffer(context, imageU8ToF32Pipeline, imageF32GrayToU8RGBAPipeline, modelResource, bufferList);
     // modelResource.pTextureGenerator = vk::su::createImageGenerator(eurocImagePaths.at(0));
     frame.commandBuffers = createCommandBuffers(context, graphicsPipelineResource, modelResource);
-
+    vk::su::windowResizeFunctor() = [&](){handleSurfaceChange(context, modelResource, frame, graphicsPipelineResource);};
     while (!glfwWindowShouldClose(context.pSurfaceData->window.handle)) {
             glfwPollEvents();
       vk::su::fpsSticker();
