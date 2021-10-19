@@ -9,6 +9,7 @@
 #include "SPIRV/GlslangToSpv.h"
 #include "vulkan/vulkan.hpp"
 #include "logging.h"
+#include "framework/pipeline_resource.h"
 
 const uint32_t WORKGROUP_SIZE = 32;
 struct GraphicsPipelineResource
@@ -23,6 +24,7 @@ struct GraphicsPipelineResource
   vk::ShaderModule fragmentShaderModule;
 };
 
+#if 0
 struct ComputePipelineResource
 {
   vk::Pipeline self;
@@ -33,6 +35,7 @@ struct ComputePipelineResource
   vk::DescriptorPool descriptorPool;
   vk::ShaderModule computeShaderModule;
 };
+#endif
 
 struct SampleContext
 {
@@ -114,12 +117,12 @@ vk::CommandBuffer createCommandBuffer(
   const ModelResource& modelResource,
   const BufferList& bufferList);
 
-vk::CommandBuffer createCommandBuffer(
-  const SampleContext& context,
-  const ComputePipelineResource& rawGrayU8ToF32pipeline,
-  const ComputePipelineResource& f32ToU8RGBApipeline,
-  const ModelResource& modelResource,
-  const BufferList& bufferList);
+// vk::CommandBuffer createCommandBuffer(
+//   const SampleContext& context,
+//   const ComputePipelineResource& rawGrayU8ToF32pipeline,
+//   const ComputePipelineResource& f32ToU8RGBApipeline,
+//   const ModelResource& modelResource,
+//   const BufferList& bufferList);
 
 void prepare(FrameResource& frame, SampleContext& context);
 void tearDown(FrameResource& frame, SampleContext& context);
@@ -131,8 +134,10 @@ void tearDown(ModelResource& modelResource, const SampleContext& context);
 void prepareRectangle(GraphicsPipelineResource& pipe, const SampleContext& context);
 void tearDown(const GraphicsPipelineResource& pipe, const SampleContext& context);
 
-void prepareCompute(ComputePipelineResource& pipe, const SampleContext& context, const std::string& shaderName);
-void tearDown(const ComputePipelineResource& pipe, const SampleContext& context);
+// void prepareCompute(ComputePipelineResource& pipe, const SampleContext& context, const std::string& shaderName);
+// void tearDown(const ComputePipelineResource& pipe, const SampleContext& context);
+// std::vector<ComputePipelineResource> prepareCompute(const SampleContext& context);
+// void tearDown(std::vector<ComputePipelineResource>& pipelines);
 
 void handleSurfaceChange(SampleContext& context, const ModelResource& modelResource, FrameResource& frame, const GraphicsPipelineResource& pipe);
 

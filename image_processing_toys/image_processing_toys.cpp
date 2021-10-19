@@ -30,6 +30,7 @@
 #include "image_processing_toys/sample_utils.h"
 #include "event_manager.h"
 #include "image_processing_toys/euroc_io.h"
+#include "framework/pipelines/pipeline_unary_operation.h"
 
 #define DEPTH_BUFFER_DATA 0
 
@@ -50,57 +51,39 @@ int main( int /*argc*/, char ** /*argv*/ )
   SampleContext context;
   ModelResource modelResource;
   GraphicsPipelineResource graphicsPipelineResource;
-  ComputePipelineResource computePipelineResource;
-  ComputePipelineResource imageU8ToF32Pipeline;
-  ComputePipelineResource imageF32GrayToU8RGBAPipeline;
+
   BufferList bufferList;
   uint32_t frameCounter = 0;
   auto timePrev = std::chrono::steady_clock::now();
   shader::ComputeUniformInfo uniformInfo;
   auto eurocImagePaths = euroc::imagePaths("V1_01_easy", 0);
+
+  pip::UnaryOperation pipelieU8C1ToU8C4;
   try
   {
 
   prepare(context,EngineName, AppName);
   prepareRectangle(graphicsPipelineResource, context);
-  prepareCompute(computePipelineResource, context, "wave.comp");
-  prepareCompute(imageU8ToF32Pipeline, context, "gray_u8_to_f32.comp");
-  prepareCompute(imageF32GrayToU8RGBAPipeline, context, "gray_f32_to_rgba_u8.comp");
+  // auto computePipelines = prepareCompute(context);
+
 
   prepare(modelResource, context);
   bufferList.prepare(context);
   uniformInfo.imgSize = glm::ivec4(modelResource.pTextureData->extent.width, modelResource.pTextureData->extent.height, 0, 0);
   uniformInfo.timestamp = 0;
 
+  #if 1
+  {
+    pipelieU8C1ToU8C4 = pip::createU8C1ToU8C4(context.physicalDevice, context.device, euroc::resolution()[0] * euroc::resolution()[1]);
+  }
+  #endif
+
+
   LOGI("{}:{}", __FILE__, __LINE__);
 
 
     /* VULKAN_KEY_START */
-
-    vk::su::updateDescriptorSets(
-      context.device, computePipelineResource.descriptorSet,
-      {
-        { vk::DescriptorType::eStorageBuffer, bufferList.pComputeOutput->buffer, {} },
-        { vk::DescriptorType::eUniformBuffer, bufferList.pComputeUniform->buffer, {} },
-        { vk::DescriptorType::eStorageBuffer, bufferList.pImageData->buffer, {} }
-      }, {});
-
-    vk::su::updateDescriptorSets(
-      context.device, imageU8ToF32Pipeline.descriptorSet,
-      {
-        { vk::DescriptorType::eStorageBuffer, bufferList.pImageU8RawGray->buffer, {} },
-        { vk::DescriptorType::eUniformBuffer, bufferList.pComputeUniform->buffer, {} },
-        { vk::DescriptorType::eStorageBuffer, bufferList.pImageData->buffer, {} }
-      }, {});
-
-    vk::su::updateDescriptorSets(
-      context.device, imageF32GrayToU8RGBAPipeline.descriptorSet,
-      {
-        { vk::DescriptorType::eStorageBuffer, bufferList.pComputeOutput->buffer, {} },
-        { vk::DescriptorType::eUniformBuffer, bufferList.pComputeUniform->buffer, {} },
-        { vk::DescriptorType::eStorageBuffer, bufferList.pImageData->buffer, {} }
-      }, {});
-
+    pipelieU8C1ToU8C4.updateDescriptorSets(*(bufferList.pImageU8RawGray), *(bufferList.pComputeOutput));
     vk::su::updateDescriptorSets(
       context.device, graphicsPipelineResource.descriptorSet,
       {},
@@ -108,8 +91,8 @@ int main( int /*argc*/, char ** /*argv*/ )
 
     FrameResource frame;
     prepare(frame, context);
-    // auto computeCommandBuffer = createCommandBuffer(context, computePipelineResource, modelResource, bufferList);
-    auto computeCommandBuffer = createCommandBuffer(context, imageU8ToF32Pipeline, imageF32GrayToU8RGBAPipeline, modelResource, bufferList);
+
+    auto computeCommandBuffer = createCommandBuffer(context, pipelieU8C1ToU8C4, modelResource, bufferList);
     // modelResource.pTextureGenerator = vk::su::createImageGenerator(eurocImagePaths.at(0));
     frame.commandBuffers = createCommandBuffers(context, graphicsPipelineResource, modelResource);
     vk::su::windowResizeFunctor() = [&](){handleSurfaceChange(context, modelResource, frame, graphicsPipelineResource);};
@@ -142,14 +125,13 @@ int main( int /*argc*/, char ** /*argv*/ )
 
     context.device.waitIdle();
     bufferList.tearDown(context);
+    pipelieU8C1ToU8C4.tearDown();
 
     /* VULKAN_KEY_END */
     tearDown(modelResource, context);
     tearDown(frame, context);
     tearDown(graphicsPipelineResource, context);
-    tearDown(computePipelineResource, context);
-    tearDown(imageU8ToF32Pipeline, context);
-    tearDown(imageF32GrayToU8RGBAPipeline, context);
+    // tearDown(computePipelines);
     tearDown(context);
   }
   catch ( vk::SystemError & err )

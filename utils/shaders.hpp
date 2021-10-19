@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#pragma once
 
 #include "vulkan/vulkan.hpp"
 
@@ -24,10 +25,12 @@ namespace vk
   {
     vk::ShaderModule createShaderModule( vk::Device const &      device,
                                          vk::ShaderStageFlagBits shaderStage,
-                                         std::string const &     shaderText );
+                                         std::string const &     shaderText,
+                                         std::string const &     macroText="" );
 
     bool GLSLtoSPV( const vk::ShaderStageFlagBits shaderType,
                     std::string const &           glslShader,
+                    std::string const &           macroText,
                     std::vector<unsigned int> &   spvShader );
   }  // namespace su
 }  // namespace vk

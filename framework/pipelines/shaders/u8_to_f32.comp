@@ -1,0 +1,35 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1 ) in;
+
+layout(std140, binding = 0) buffer srcBuffer
+{
+   uvec4 data[];
+}uInput;
+
+layout (std140, binding = 1) uniform constBuffer
+{
+  uint totalElementNum;
+} uConst;
+
+layout(std140, binding = 2) buffer dstBuffer
+{
+   vec4 data[];
+}uOutput;
+
+void main()
+{
+    uint elementPerThread = 4;
+    if(gl_GlobalInvocationID.x >= uConst.totalElementNum / elementPerThread)
+        return;
+
+    uint index = gl_GlobalInvocationID.x;
+    uint indexSrcMajor = index >> 2; //index / 4;
+    uint indexSrcMinor = index & 3; //index % 4;
+
+    uvec4 grayU8 = uvec4(uInput[indexSrcMajor][indexSrcMinor]);
+    uvec4 shiftVal = uvec4(0,8,16,24);
+
+    uOutput[index] = vec4(((grayU8 >> shiftVal) & 0xff) / 255.f);
+}

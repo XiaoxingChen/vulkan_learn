@@ -22,6 +22,7 @@ include(textualResourceManager)
 
 add_subdirectory(third_party)
 add_subdirectory(utils)
+add_subdirectory(framework)
 if(BUILD_TEST)
     add_subdirectory(tests)
 endif(BUILD_TEST)

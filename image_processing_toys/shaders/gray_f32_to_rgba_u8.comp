@@ -28,6 +28,11 @@ layout(std140, binding = 2) buffer buf2
    ImageData imageData[];
 };
 
+vec2 lowUpLimits()
+{
+
+}
+
 void main()
 {
     uint pxPerThread = 4;

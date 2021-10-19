@@ -95,9 +95,9 @@ void prepareRectangle(GraphicsPipelineResource& pipeline, const SampleContext& c
   glslang::InitializeProcess();
 
   pipeline.vertexShaderModule =
-    vk::su::createShaderModule( context.device, vk::ShaderStageFlagBits::eVertex, readShaderSource("imshow.vert") );
+    vk::su::createShaderModule( context.device, vk::ShaderStageFlagBits::eVertex, readShaderSource("image_processing_toys/shaders/imshow.vert") );
   pipeline.fragmentShaderModule =
-    vk::su::createShaderModule( context.device, vk::ShaderStageFlagBits::eFragment, readShaderSource("imshow.frag") );
+    vk::su::createShaderModule( context.device, vk::ShaderStageFlagBits::eFragment, readShaderSource("image_processing_toys/shaders/imshow.frag") );
   glslang::FinalizeProcess();
 
   pipeline.descriptorPool =
@@ -132,6 +132,7 @@ void tearDown(const GraphicsPipelineResource& pipeline, const SampleContext& con
   context.device.destroyDescriptorSetLayout( pipeline.descriptorSetLayout );
 }
 
+#if 0
 void prepareCompute(ComputePipelineResource& pipeline, const SampleContext& context, const std::string& shaderName)
 {
   pipeline.descriptorSetLayout = vk::su::createDescriptorSetLayout(
@@ -168,6 +169,8 @@ void tearDown(const ComputePipelineResource& pipeline, const SampleContext& cont
   context.device.destroyDescriptorSetLayout( pipeline.descriptorSetLayout );
 }
 
+#endif
+#if 0
 vk::CommandBuffer createCommandBuffer(
   const SampleContext& context,
   const ComputePipelineResource& pipeline,
@@ -192,11 +195,10 @@ vk::CommandBuffer createCommandBuffer(
     commandBuffer.end();
     return commandBuffer;
 }
-
+#endif
 vk::CommandBuffer createCommandBuffer(
   const SampleContext& context,
-  const ComputePipelineResource& rawGrayU8ToF32pipeline,
-  const ComputePipelineResource& f32ToU8RGBApipeline,
+  const ComputePipelineResource& u8c1Tou8c4,
   const ModelResource& modelResource,
   const BufferList& bufferList)
 {
@@ -206,17 +208,7 @@ vk::CommandBuffer createCommandBuffer(
     // command buffer
     commandBuffer.begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlags()));
 
-    commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, rawGrayU8ToF32pipeline.self);
-    commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rawGrayU8ToF32pipeline.layout, 0, rawGrayU8ToF32pipeline.descriptorSet, nullptr);
-    commandBuffer.dispatch(
-      (uint32_t)ceil(euroc::resolution()[0] / float(WORKGROUP_SIZE)),
-      (uint32_t)ceil(euroc::resolution()[1] / float(WORKGROUP_SIZE)), 1);
-
-    commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, f32ToU8RGBApipeline.self);
-    commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, f32ToU8RGBApipeline.layout, 0, f32ToU8RGBApipeline.descriptorSet, nullptr);
-    commandBuffer.dispatch(
-      (uint32_t)ceil(euroc::resolution()[0] / float(WORKGROUP_SIZE)),
-      (uint32_t)ceil(euroc::resolution()[1] / float(WORKGROUP_SIZE)), 1);
+    u8c1Tou8c4.record(commandBuffer);
 
     modelResource.pTextureData->setImage(context.device, commandBuffer, *bufferList.pComputeOutput);
     commandBuffer.end();
@@ -380,7 +372,7 @@ vk::Result draw(SampleContext& context, FrameResource& frame)
   {
     result = static_cast<vk::Result>(e.code().value());
   }
-  if(result != vk::Result::eSuccess) return result;
+  return result;
 }
 
 std::shared_ptr<vk::su::BufferData> createTexturedVertexBuffer(const SampleContext& context)
