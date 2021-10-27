@@ -31,6 +31,7 @@
 #include "event_manager.h"
 #include "image_processing_toys/euroc_io.h"
 #include "framework/pipelines/pipeline_unary_operation.h"
+#include "framework/pipelines/reduce_operation.h"
 
 #define DEPTH_BUFFER_DATA 0
 
@@ -59,6 +60,7 @@ int main( int /*argc*/, char ** /*argv*/ )
   auto eurocImagePaths = euroc::imagePaths("V1_01_easy", 0);
 
   pip::UnaryOperation pipelieU8C1ToU8C4;
+  pip::ReduceOperation pipelieReduceMax;
   try
   {
 
@@ -74,7 +76,8 @@ int main( int /*argc*/, char ** /*argv*/ )
 
   #if 1
   {
-    pipelieU8C1ToU8C4 = pip::createU8C1ToU8C4(context.physicalDevice, context.device, euroc::resolution()[0] * euroc::resolution()[1]);
+    pipelieU8C1ToU8C4 = pip::createU8C1ToU8C4(context.physicalDevice, context.device);
+    pipelieReduceMax = pip::createReduceToFirst<float>(context.physicalDevice, context.device);
   }
   #endif
 
@@ -83,7 +86,8 @@ int main( int /*argc*/, char ** /*argv*/ )
 
 
     /* VULKAN_KEY_START */
-    pipelieU8C1ToU8C4.updateDescriptorSets(*(bufferList.pImageU8RawGray), *(bufferList.pComputeOutput));
+    pipelieU8C1ToU8C4.configIO(*(bufferList.pImageU8RawGray), *(bufferList.pComputeOutput), euroc::resolution()[0] * euroc::resolution()[1]);
+
     vk::su::updateDescriptorSets(
       context.device, graphicsPipelineResource.descriptorSet,
       {},

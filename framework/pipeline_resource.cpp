@@ -4,13 +4,13 @@
 #include "resource_manager.h"
 
 void ComputePipelineResource::prepare(
-    const vk::Device& device_,
+    const vk::Device& device,
     const std::vector<vk::DescriptorType>& descriptors,
     const std::string& shaderName,
     const std::string& shaderMacros)
 {
-    device = device_;
-    auto & pipeline = *this;
+    device_ = device;
+    // auto & pipeline = *this;
     std::vector<std::tuple<vk::DescriptorType, uint32_t, vk::ShaderStageFlags>> bindingData;
     std::vector<vk::DescriptorPoolSize> poolSizes;
 
@@ -20,33 +20,33 @@ void ComputePipelineResource::prepare(
         poolSizes.push_back({descriptor, 1});
     }
 
-    pipeline.descriptorSetLayout = vk::su::createDescriptorSetLayout(
-    device, bindingData );
+    descriptorSetLayout_ = vk::su::createDescriptorSetLayout(
+    device_, bindingData );
 
-    pipeline.descriptorPool = vk::su::createDescriptorPool( device, poolSizes );
-    pipeline.descriptorSet = std::move(
-        device.allocateDescriptorSets( vk::DescriptorSetAllocateInfo( pipeline.descriptorPool, pipeline.descriptorSetLayout ) )
+    descriptorPool_ = vk::su::createDescriptorPool( device_, poolSizes );
+    descriptorSet_ = std::move(
+        device_.allocateDescriptorSets( vk::DescriptorSetAllocateInfo( descriptorPool_, descriptorSetLayout_ ) )
           .front() );
     glslang::InitializeProcess();
-    pipeline.computeShaderModule = vk::su::createShaderModule(device, vk::ShaderStageFlagBits::eCompute,
+    computeShaderModule_ = vk::su::createShaderModule(device_, vk::ShaderStageFlagBits::eCompute,
       readShaderSource(shaderName), shaderMacros);
     glslang::FinalizeProcess();
-    pipeline.layout = device.createPipelineLayout(
-        vk::PipelineLayoutCreateInfo( vk::PipelineLayoutCreateFlags(), pipeline.descriptorSetLayout )
+    layout_ = device_.createPipelineLayout(
+        vk::PipelineLayoutCreateInfo( vk::PipelineLayoutCreateFlags(), descriptorSetLayout_ )
       );
 
-    pipeline.self = vk::su::createComputePipeline(device, pipeline.computeShaderModule, pipeline.layout);
+    self_ = vk::su::createComputePipeline(device_, computeShaderModule_, layout_);
 }
 
 void ComputePipelineResource::tearDown()
 {
-  if(!device) return;
-  auto & pipeline = *this;
-  device.destroyPipeline( pipeline.self );
-  device.destroyPipelineCache( pipeline.cache );
-  device.destroyDescriptorPool( pipeline.descriptorPool );
-  device.destroyShaderModule( pipeline.computeShaderModule );
-  device.destroyPipelineLayout( pipeline.layout );
-  device.destroyDescriptorSetLayout( pipeline.descriptorSetLayout );
-  device = nullptr;
+  if(!device_) return;
+  // auto & pipeline = *this;
+  device_.destroyPipeline( self_ );
+  device_.destroyPipelineCache( cache_ );
+  device_.destroyDescriptorPool( descriptorPool_ );
+  device_.destroyShaderModule( computeShaderModule_ );
+  device_.destroyPipelineLayout( layout_ );
+  device_.destroyDescriptorSetLayout( descriptorSetLayout_ );
+  device_ = nullptr;
 }

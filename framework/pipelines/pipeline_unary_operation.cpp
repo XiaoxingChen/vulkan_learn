@@ -5,13 +5,11 @@ namespace pip
 {
 
 void UnaryOperation::prepare(const vk::PhysicalDevice& physicalDevice,
-    const vk::Device& device_,
-    uint32_t elementNum,
+    const vk::Device& device,
     const std::string& shaderFilename,
     const std::string& shaderMacro)
 {
-    device = device_;
-	outputVectorSize_ = elementNum;
+    device_ = device;
     std::vector<vk::DescriptorType> descriptors{
       vk::DescriptorType::eStorageBuffer,
       vk::DescriptorType::eUniformBuffer,
@@ -26,54 +24,56 @@ void UnaryOperation::prepare(const vk::PhysicalDevice& physicalDevice,
         poolSizes.push_back({descriptor, 1});
     }
 
-    descriptorSetLayout = vk::su::createDescriptorSetLayout(
-    device, bindingData );
+    descriptorSetLayout_ = vk::su::createDescriptorSetLayout(
+    device_, bindingData );
 
-    descriptorPool = vk::su::createDescriptorPool( device, poolSizes );
-    descriptorSet = std::move(
-        device.allocateDescriptorSets( vk::DescriptorSetAllocateInfo( descriptorPool, descriptorSetLayout ) )
+    descriptorPool_ = vk::su::createDescriptorPool( device_, poolSizes );
+    descriptorSet_ = std::move(
+        device_.allocateDescriptorSets( vk::DescriptorSetAllocateInfo( descriptorPool_, descriptorSetLayout_ ) )
           .front() );
     glslang::InitializeProcess();
-    computeShaderModule = vk::su::createShaderModule(
-      device, vk::ShaderStageFlagBits::eCompute, readShaderSource(shaderFilename), shaderMacro);
+    computeShaderModule_ = vk::su::createShaderModule(
+      device_, vk::ShaderStageFlagBits::eCompute, readShaderSource(shaderFilename), shaderMacro);
     glslang::FinalizeProcess();
-    layout = device.createPipelineLayout(
-        vk::PipelineLayoutCreateInfo( vk::PipelineLayoutCreateFlags(), descriptorSetLayout )
+    layout_ = device_.createPipelineLayout(
+        vk::PipelineLayoutCreateInfo( vk::PipelineLayoutCreateFlags(), descriptorSetLayout_ )
       );
 
-    self = vk::su::createComputePipeline(device, computeShaderModule, layout);
+    self_ = vk::su::createComputePipeline(device_, computeShaderModule_, layout_);
 
     {
-      pConstBuffer = std::make_shared<vk::su::BufferData>(
-      physicalDevice, device, sizeof(uint32_t), vk::BufferUsageFlagBits::eUniformBuffer );
-      pConstBuffer->upload(device, elementNum);
+      pConstBuffer_ = std::make_shared<vk::su::BufferData>(
+      physicalDevice, device_, sizeof(uint32_t), vk::BufferUsageFlagBits::eUniformBuffer );
+      // pConstBuffer_->upload(device_, elementNum);
     }
 }
 
 void UnaryOperation::record(vk::CommandBuffer& commandBuffer) const
 {
-  commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, self);
-  commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, layout, 0, descriptorSet, nullptr);
+  commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, self_);
+  commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, layout_, 0, descriptorSet_, nullptr);
   commandBuffer.dispatch(
       (uint32_t)ceil(outputVectorSize_ / float(256)), 1, 1);
 }
 
-void UnaryOperation::updateDescriptorSets(const vk::su::BufferData& inputBuffer, const vk::su::BufferData& outputBuffer)
+void UnaryOperation::configIO(const vk::su::BufferData& inputBuffer, const vk::su::BufferData& outputBuffer, uint32_t elementNum)
 {
-  vk::su::updateDescriptorSets(device, descriptorSet,
+  outputVectorSize_ = elementNum;
+  pConstBuffer_->upload(device_, elementNum);
+  vk::su::updateDescriptorSets(device_, descriptorSet_,
   {
     { vk::DescriptorType::eStorageBuffer, inputBuffer.buffer, {} },
-    { vk::DescriptorType::eUniformBuffer, pConstBuffer->buffer, {} },
+    { vk::DescriptorType::eUniformBuffer, pConstBuffer_->buffer, {} },
     { vk::DescriptorType::eStorageBuffer, outputBuffer.buffer, {} }
   }, {});
 }
 
 void UnaryOperation::tearDown()
 {
-  if(pConstBuffer)
+  if(pConstBuffer_)
   {
-    pConstBuffer->clear(device);
-    pConstBuffer.reset();
+    pConstBuffer_->clear(device_);
+    pConstBuffer_.reset();
   }
 
   ComputePipelineResource::tearDown();

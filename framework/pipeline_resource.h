@@ -9,17 +9,17 @@
 
 class ComputePipelineResource
 {
+protected:
+    vk::Pipeline self_;
+    vk::PipelineLayout layout_;
+    vk::DescriptorSetLayout descriptorSetLayout_;
+    vk::DescriptorSet descriptorSet_;
+    vk::PipelineCache cache_;
+    vk::DescriptorPool descriptorPool_;
+    vk::ShaderModule computeShaderModule_;
+    vk::Device device_ = nullptr;
+
 public:
-
-    vk::Pipeline self;
-    vk::PipelineLayout layout;
-    vk::DescriptorSetLayout descriptorSetLayout;
-    vk::DescriptorSet descriptorSet;
-    vk::PipelineCache cache;
-    vk::DescriptorPool descriptorPool;
-    vk::ShaderModule computeShaderModule;
-    vk::Device device = nullptr;
-
     void prepare(const vk::Device& device, const std::vector<vk::DescriptorType>& descriptors, const std::string& shaderName, const std::string& shaderMacros);
     void tearDown();
     virtual void record(vk::CommandBuffer& commandBuffer) const {}
